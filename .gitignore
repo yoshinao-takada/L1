@@ -5,7 +5,7 @@ include/
 01Base/NumbersCopy.c
 01BaseUT/ExecuteLogUT.c
 01BaseUT/ExecuteNumbersCopyUT.c
-02Math/MiniBlas.c
+02Math/MiniBLAS.c
 02Math/MiniLA.c
 02MathUT/MiniBLASUT.c
 02MathUT/MiniLAUT.c
