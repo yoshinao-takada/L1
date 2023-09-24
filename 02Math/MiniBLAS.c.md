@@ -20,7 +20,7 @@ void SLCBLAS<VTYPE>_AddAss(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src,         S
 ) {
     for (SLC<ITYPE>_t i = 0; i < count; i++)
     {
-        *dst += *src++;
+        *dst++ += *src++;
     }
 }
 
