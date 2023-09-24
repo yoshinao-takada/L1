@@ -1,4 +1,5 @@
 CC = gcc
+# markdown to c preprocessor
 SLCPP = node ../99Tools/slcpp.js
 INCDIR = ../include
 INCFLAGS = -I$(INCDIR)
@@ -103,14 +104,11 @@ ExecuteLogUT.c	:	ExecuteLogUT.c.md
 	$(SLCPP) $<
 
 clean_debug	:
-	rm -f $(DEBUG_OBJECTS)
+	rm -f $(DEBUG_OBJECTS) $(DEBUG_TARGET)
 	rm -f ExecuteNumbersCopyUT.c ExecuteLogUT.c
 
 clean_release	:
-	rm -f $(RELEASE_OBJECTS)
+	rm -f $(RELEASE_OBJECTS) $(RELEASE_TARGET)
 	rm -f ExecuteNumbersCopyUT.c ExecuteLogUT.c
 
-clean	:
-	rm -f $(DEBUG_OBJECTS)
-	rm -f $(RELEASE_OBJECTS)
-	rm -f ExecuteNumbersCopyUT.c ExecuteLogUT.c
+clean	:	clean_debug clean_release
