@@ -21,7 +21,7 @@ RELEASE_TARGET = $(RELEASE_BINDIR)/01BaseDone
 .PHONY	:	clean_debug
 .PHONY	:	clean_release
 
-debug	:	$(DEBUG_TARGET)
+debug	:	$(DEBUG_TARGET) $(INCDIR)/SLC/ExIO.h
 
 $(DEBUG_TARGET)	:	$(DEBUG_OBJECTS)
 	mkdir -p $(DEBUG_BINDIR)
@@ -47,7 +47,7 @@ $(DEBUG_OBJDIR)/Utils.o	:	Utils.c $(INCDIR)/SLC/Utils.h
 	mkdir -p $(DEBUG_OBJDIR)
 	$(CC) $(DEBUG_CCFLAGS) -o $@ $<
 
-release	:	$(RELEASE_TARGET)
+release	:	$(RELEASE_TARGET) $(INCDIR)/SLC/ExIO.h
 
 $(RELEASE_TARGET)	:	$(RELEASE_OBJECTS)
 	mkdir -p $(RELEASE_BINDIR)
@@ -101,6 +101,9 @@ $(INCDIR)/SLC/Array.h	:	Array.h
 
 $(INCDIR)/SLC/Utils.h	:	Utils.h
 	cp $< $@
+
+$(INCDIR)/SLC/ExIO.h	:	ExIO.h
+	cp $< $@
 	
 clean_debug	:
 	rm -f $(DEBUG_OBJECTS) $(DEBUG_TARGET)
@@ -108,7 +111,7 @@ clean_debug	:
 	rm -f $(INCDIR)/SLC/Numbers.h
 	rm -f $(INCDIR)/SLC/NumbersCopy.h
 	rm -f $(INCDIR)/SLC/Log.h
-	rm -f $(INCDIR)/SLC/Array.h $(INCDIR)/SLC/Utils.h
+	rm -f $(INCDIR)/SLC/Array.h $(INCDIR)/SLC/Utils.h $(INCDIR)/SLC/ExIO.h
 
 clean_release	:
 	rm -f $(RELEASE_OBJECTS) $(RELEASE_TARGET)
@@ -116,7 +119,7 @@ clean_release	:
 	rm -f $(INCDIR)/SLC/Numbers.h
 	rm -f $(INCDIR)/SLC/NumbersCopy.h
 	rm -f $(INCDIR)/SLC/Log.h
-	rm -f $(INCDIR)/SLC/Array.h $(INCDIR)/SLC/Utils.h
+	rm -f $(INCDIR)/SLC/Array.h $(INCDIR)/SLC/Utils.h $(INCDIR)/SLC/ExIO.h
 
 clean	:
 	rm -f $(DEBUG_OBJECTS) $(DEBUG_TARGET)
@@ -125,4 +128,4 @@ clean	:
 	rm -f $(INCDIR)/SLC/Numbers.h
 	rm -f $(INCDIR)/SLC/NumbersCopy.h
 	rm -f $(INCDIR)/SLC/Log.h
-	rm -f $(INCDIR)/SLC/Array.h $(INCDIR)/SLC/Utils.h
+	rm -f $(INCDIR)/SLC/Array.h $(INCDIR)/SLC/Utils.h $(INCDIR)/SLC/ExIO.h

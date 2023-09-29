@@ -11,6 +11,7 @@
 #define SLCLog__H_
 #include "SLC/Numbers.h"
 #include "SLC/errno.h"
+#include "SLC/ExIO.h"
 #include <stdio.h>
 #include <pthread.h>
 #pragma region Loggging_related_definitions
@@ -44,6 +45,7 @@ void SLCLog_WriteErrHeader(SLCerrno_t err);
     SLCLog_WriteErrHeader(err); \
     fprintf(SLCLog_Sink, __VA_ARGS__); \
 }
+
 // __var : evaluation target variable
 // __err : error number variable is set by this macro.
 // __file : file path; usually filled with __FILE__ macro.
@@ -112,6 +114,35 @@ void SLC_Stopwatch_Release(SLCi32_t channel);
 
 // Difference between two timespec instances
 void SLC_Timespec_A_minus_B(struct timespec* a_minus_b, struct timespec* a, struct timespec* b);
+
+/*!
+\brief error log for SLCr32_t number array test
+\param err [in] error code like EXIT_FAILURE, SLC_ESINGULAR, etc.
+\param refname [in] variable name of reference number array
+\param testname [in] variable name of number array under test
+\param index [in] index of the arrays where an error occured
+\param refarray [in] reference number array
+\param testarray [in] number array under test
+*/
+void SLCLogr32_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCr32_t* refarray, const SLCr32_t* testarray
+);
+
+void SLCLogr64_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCr64_t* refarray, const SLCr64_t* testarray
+);
+
+void SLCLogc64_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCc64_t* refarray, const SLCc64_t* testarray
+);
+
+void SLCLogc128_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCc128_t* refarray, const SLCc128_t* testarray
+);
 #pragma endregion
 ```
 # Generic

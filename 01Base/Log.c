@@ -131,3 +131,43 @@ void SLC_Timespec_A_minus_B(
     a_minus_b->tv_sec = a->tv_sec - b->tv_sec;
     a_minus_b->tv_nsec = a->tv_nsec - b->tv_nsec;
 }
+
+void SLCLogr32_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCr32_t* refarray, const SLCr32_t* testarray
+) {
+    if ((!SLCLog_Sink) || (0 == (SLCLog_Level & SLCLog_LevelERR))) return;
+    SLCLog_WriteErrHeader(err);
+    fprintf(SLCLog_Sink, "Number mismatch, %s[%d] = %f, %s[%d] = %f\n",
+        refname, index, refarray[index], testname, index, testarray[index]);
+}
+
+void SLCLogr64_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCr64_t* refarray, const SLCr64_t* testarray
+) {
+    if ((!SLCLog_Sink) || (0 == (SLCLog_Level & SLCLog_LevelERR))) return;
+    SLCLog_WriteErrHeader(err);
+    fprintf(SLCLog_Sink, "Number mismatch, %s[%d] = %f, %s[%d] = %f\n",
+        refname, index, refarray[index], testname, index, testarray[index]);
+}
+
+void SLCLogc64_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCc64_t* refarray, const SLCc64_t* testarray
+) {
+    if ((!SLCLog_Sink) || (0 == (SLCLog_Level & SLCLog_LevelERR))) return;
+    SLCLog_WriteErrHeader(err);
+    fprintf(SLCLog_Sink, "Number mismatch, %s[%d] = %f+i%f, %s[%d] = %f+i%f\n",
+        refname, index, crealf(refarray[index]), cimagf(refarray[index]), testname, index, crealf(testarray[index]), cimagf(testarray[index]));
+}
+
+void SLCLogc128_ERR(SLCerrno_t err,
+    const char* refname, const char* testname,
+    SLCi32_t index, const SLCc128_t* refarray, const SLCc128_t* testarray
+) {
+    if ((!SLCLog_Sink) || (0 == (SLCLog_Level & SLCLog_LevelERR))) return;
+    SLCLog_WriteErrHeader(err);
+    fprintf(SLCLog_Sink, "Number mismatch, %s[%d] = %f+i%f, %s[%d] = %f+i%f\n",
+        refname, index, creal(refarray[index]), cimag(refarray[index]), testname, index, creal(testarray[index]), cimag(testarray[index]));
+}

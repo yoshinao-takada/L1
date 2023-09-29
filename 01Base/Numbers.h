@@ -183,10 +183,6 @@ typedef void*       SLC16ptr_t[16];
 #define SLCr64_fromreal(__number)  (__number)
 #define SLCc64_fromreal(__number)  CMPLXF(__number, 0.0f)
 #define SLCc128_fromreal(__number) CMPLX(__number, 0.0f)
-#define SLCr32_print(__out, __delimiter, __number) fprintf(__out, "%s%f", __delimiter, __number)
-#define SLCr64_print(__out, __delimiter, __number) fprintf(__out, "%s%f", __delimiter, __number)
-#define SLCc64_print(__out, __delimiter, __number) fprintf(__out, "%s(%f,%f)", __delimiter, crealf(__number), cimagf(__number))
-#define SLCc128_print(__out, __delimiter, __number) fprintf(__out, "%s(%f,%f)", __delimiter, creal(__number), cimag(__number))
 // uniform distribution [-1.0, +1.0] random number generators
 #define SLCr32_rand    ((SLCr32_t)(rand()-0.5f*RAND_MAX)/(0.5f*RAND_MAX))
 #define SLCr64_rand    ((SLCr64_t)(rand()-0.5*RAND_MAX)/(0.5*RAND_MAX ))

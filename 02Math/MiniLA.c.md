@@ -12,6 +12,7 @@
 ```
 #include "SLC/MiniLA.h"
 #include "SLC/NumbersCopy.h"
+#include "SLC/ExIO.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -532,16 +533,10 @@ void SLCMat<VTYPE>_Print(FILE* out, const char* header, SLCPArray_t mat, const c
     fprintf(out, "%s",header);
     fprintf(out, "%d, %d\n", mat->cont.i16[1], mat->cont.i16[2]);
     const SLC<VTYPE>_t* ptr = mat->data.<VTYPE>;
-    for (SLCi16_t row = 0; row < mat->cont.i16[2]; row++)
+    SLC<ITYPE>_t columns = SLCArray_MatColumns(mat);
+    for (SLCi16_t row = 0; row < mat->cont.i16[2]; row++, ptr += columns)
     {
-        const char* delimiter = "";
-        for (SLCi16_t column = 0; column < mat->cont.i16[1]; column++)
-        {
-            SLC<VTYPE>_print(out, delimiter, *ptr);
-            ptr++;
-            delimiter = ",";
-        }
-        fprintf(out, "\n");
+        SLC<VTYPE>_printvn(out, ptr, columns);
     }
     fprintf(out, "%s",footer);
 }

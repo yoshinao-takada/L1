@@ -48,7 +48,7 @@ void SLCBLAS<VTYPE>_ScaleAdd(
 
 // element-by-element operation has a postfix 'ebe'
 // element-by-element product
-void SLCBLAS<VTYPE>_MultyplyEbe(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src0, const SLC<VTYPE>_t* src1, SLC<ITYPE>_t count);
+void SLCBLAS<VTYPE>_MultiplyEbe(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src0, const SLC<VTYPE>_t* src1, SLC<ITYPE>_t count);
 
 // it is effective only for complex numbers. in the case of real numbers, it is same as copy.
 void SLCBLAS<VTYPE>_CopyConj(

@@ -40,7 +40,7 @@ void SLCBLAS<VTYPE>_ScaleAddAss(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src, cons
     }
 }
 
-void SLCBLAS<VTYPE>_multiplyEbeAss(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src, SLC<ITYPE>_t count
+void SLCBLAS<VTYPE>_MultiplyEbeAss(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src, SLC<ITYPE>_t count
 ) {
     for (SLC<ITYPE>_t i = 0; i < count; i++)
     {
@@ -78,7 +78,7 @@ void SLCBLAS<VTYPE>_ScaleAdd(
     }
 }
 
-void SLCBLAS<VTYPE>_MultyplyEbe(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src0, const SLC<VTYPE>_t* src1, SLC<ITYPE>_t count
+void SLCBLAS<VTYPE>_MultiplyEbe(SLC<VTYPE>_t* dst, const SLC<VTYPE>_t* src0, const SLC<VTYPE>_t* src1, SLC<ITYPE>_t count
 ) {
     for (SLC<ITYPE>_t i = 0; i < count; i++)
     {

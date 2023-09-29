@@ -70,3 +70,9 @@ clean_release	:
 	rm -f $(RELEASE_OBJECTS) $(RELEASE_TARGET)
 	rm -f MiniBLAS.c $(INCDIR)/SLC/MiniBLAS.h
 	rm -f MiniLA.c $(INCDIR)/SLC/MiniLA.h
+
+clean	:
+	rm -f $(DEBUG_OBJECTS) $(DEBUG_TARGET)
+	rm -f $(RELEASE_OBJECTS) $(RELEASE_TARGET)
+	rm -f MiniBLAS.c $(INCDIR)/SLC/MiniBLAS.h
+	rm -f MiniLA.c $(INCDIR)/SLC/MiniLA.h
