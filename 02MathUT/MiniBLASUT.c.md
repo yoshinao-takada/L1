@@ -38,7 +38,10 @@ static const SLCr32_t
 // scale0 * src0
     r32_scale0_src0[] = { -2.7f, -1.5f, 0.0f, 1.8f, 2.4f },
 // conj(src0)
-    r32_conj_src0[] = { -1.8f, -1.0f, 0.0f, 1.2f, 1.6f };
+    r32_conj_src0[] = { -1.8f, -1.0f, 0.0f, 1.2f, 1.6f },
+// sum(src0), abssum(src0), productsum(src0, src1), innerproduct(src0, src1)
+    r32_sum_src0 = 0.0f, r32_abssum_src0 = 5.6f, r32_prodsum_src0_src1 = -81.6f,
+    r32_innerproduct_src0_src1 = -81.6f;
 static const SLCi32_t r32arraysize = SLCarraysize(r32_src0);
 #pragma endregion r32_test_data
 ```
@@ -62,7 +65,10 @@ static const SLCr64_t
 // scale0 * src0
     r64_scale0_src0[] = { -2.7, -1.5, 0.0, 1.8, 2.4 },
 // conj(src0)
-    r64_conj_src0[] = { -1.8, -1.0, 0.0, 1.2, 1.6 };
+    r64_conj_src0[] = { -1.8, -1.0, 0.0, 1.2, 1.6 },
+// sum(src0), abssum(src0), productsum(src0, src1), innerproduct(src0, src1)
+    r64_sum_src0 = 0.0, r64_abssum_src0 = 5.6, r64_prodsum_src0_src1 = -81.6,
+    r64_innerproduct_src0_src1 = -81.6;
 static const SLCi32_t r64arraysize = SLCarraysize(r64_src0);
 #pragma endregion r64_test_data
 ```
@@ -86,7 +92,12 @@ static  const SLCc64_t
 // scale0 * src0
     c64_scale0_src0[] = { CMPLXF(-4.7f,2.1f), CMPLXF(2.4f,1.8f), CMPLXF(-1.2f,-5.9f) },
 // conj(src0)
-    c64_conj_src0[] = { CMPLXF(-1.8f,1.0f), CMPLXF(0.0f,-1.2f), CMPLXF(1.6f,1.8f) };
+    c64_conj_src0[] = { CMPLXF(-1.8f,1.0f), CMPLXF(0.0f,-1.2f), CMPLXF(1.6f,1.8f) },
+// sum(src0), productsum(src0, src1), innerproduct(src0, src1)
+    c64_sum_src0 = CMPLXF(-0.2f, -1.6f), c64_prodsum_src0_src1 = CMPLXF(-4.8f, 20.4f),
+    c64_innerproduct_src0_src1 = CMPLXF(-110.4f, 12.4f);
+// abssum(src0)
+    SLCr32_t c64_abssum_src0 = 5.6674f;
 static const SLCi32_t c64arraysize = SLCarraysize(c64_src0);
 #pragma endregion c64_test_data
 ```
@@ -110,7 +121,12 @@ static  const SLCc128_t
 // scale0 * src0
     c128_scale0_src0[] = { CMPLX(-4.7,2.1), CMPLX(2.4,1.8), CMPLX(-1.2,-5.9) },
 // conj(src0)
-    c128_conj_src0[] = { CMPLX(-1.8,1.0), CMPLX(0.0,-1.2), CMPLX(1.6,1.8) };
+    c128_conj_src0[] = { CMPLX(-1.8,1.0), CMPLX(0.0,-1.2), CMPLX(1.6,1.8) },
+// sum(src0), abssum(src0), productsum(src0, src1), innerproduct(src0, src1)
+    c128_sum_src0 = CMPLX(-0.2, -1.6), c128_prodsum_src0_src1 = CMPLX(-4.8, 20.4),
+    c128_innerproduct_src0_src1 = CMPLX(-110.4, 12.4);
+// abssum(src0)
+    SLCr64_t c128_abssum_src0 = 5.66744494396;
 static const SLCi32_t c128arraysize = SLCarraysize(c128_src0);
 #pragma endregion c128_test_data
 ```
@@ -187,7 +203,7 @@ static SLCerrno_t <VTYPE>ScaleAddAssUT()
 }
 ```
 ```
-SLCerrno_t <VTYPE>MultiplyEbeAssUT() 
+static SLCerrno_t <VTYPE>MultiplyEbeAssUT() 
 {
     SLCerrno_t err = EXIT_SUCCESS;
     SLC<VTYPE>_t dst[SLCarraysize(<VTYPE>_src0)];
@@ -322,10 +338,65 @@ static SLCerrno_t <VTYPE>CopyConjUT()
 ```
 ## InnreProduct, ProductSum, Sum, AbsSum
 ```
+static SLCerrno_t <VTYPE>InnerProductUT() {
+    SLCerrno_t err = EXIT_SUCCESS;
+    do {
+        SLC<VTYPE>_t innerproduct = SLCBLAS<VTYPE>_InnerProduct(<VTYPE>_src0, <VTYPE>_src1, <VTYPE>arraysize);
+        if (!SLC<VTYPE>_areequal(innerproduct, <VTYPE>_innerproduct_src0_src1, SLC<VTYPE>_stdtol))
+        {
+            err = EXIT_FAILURE;
+            SLCLog_ERR(err, "InnerProduct mistmatch\n");
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+static SLCerrno_t <VTYPE>ProductSumUT() {
+    SLCerrno_t err = EXIT_SUCCESS;
+    do {
+        SLC<VTYPE>_t prodsum = SLCBLAS<VTYPE>_ProductSum(<VTYPE>_src0, <VTYPE>_src1, <VTYPE>arraysize);
+        if (!SLC<VTYPE>_areequal(prodsum, <VTYPE>_prodsum_src0_src1, SLC<VTYPE>_stdtol))
+        {
+            err = EXIT_FAILURE;
+            SLCLog_ERR(err, "ProductSum mismatch\n");
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+static SLCerrno_t <VTYPE>SumUT() {
+    SLCerrno_t err = EXIT_SUCCESS;
+    do {
+        SLC<VTYPE>_t sum = SLCBLAS<VTYPE>_Sum(<VTYPE>_src0, <VTYPE>arraysize);
+        if (!SLC<VTYPE>_areequal(sum, <VTYPE>_sum_src0, SLC<VTYPE>_stdtol))
+        {
+            err = EXIT_FAILURE;
+            SLCLog_ERR(err, "Sum mismatch\n");
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+static SLCerrno_t <VTYPE>AbsSumUT() {
+    SLCerrno_t err = EXIT_SUCCESS;
+    do {
+        SLC<RTYPE>_t abssum = SLCBLAS<VTYPE>_AbsSum(<VTYPE>_src0, <VTYPE>arraysize);
+        if (!SLC<RTYPE>_areequal(abssum, <VTYPE>_abssum_src0, SLC<VTYPE>_stdtol))
+        {
+            SLCLog_ERR(err, "AbsSum mismatch\n");
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
 ```
 ## submain harnessing MiniBLASUT functions
 ```
-SLCerrno_t <VTYPE>MiniBLASUT()
+static SLCerrno_t <VTYPE>MiniBLASUT()
 {
     SLCerrno_t err = EXIT_SUCCESS;
     do {
@@ -347,6 +418,16 @@ SLCerrno_t <VTYPE>MiniBLASUT()
         if (err) break;
         err = <VTYPE>CopyConjUT();
         if (err) break;
+#pragma region vector_to_scalar_operation
+        err = <VTYPE>InnerProductUT();
+        if (err) break;
+        err = <VTYPE>ProductSumUT();
+        if (err) break;
+        err = <VTYPE>SumUT();
+        if (err) break;
+        err = <VTYPE>AbsSumUT();
+        if (err) break;
+#pragma endregion vector_to_scalar_operation
     } while (0);
     SLC_testend(err, __FUNCTION__, __LINE__);
     return err;

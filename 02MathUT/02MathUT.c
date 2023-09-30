@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 SLCerrno_t MiniBLASUT();
+SLCerrno_t MiniLAUT();
 
 int main(int argc, const char* argv[])
 {
@@ -12,8 +13,8 @@ int main(int argc, const char* argv[])
     do {
         err = MiniBLASUT();
         if (err) break;
-        // err = MiniLAUT();
-        // if (err) break;
+        err = MiniLAUT();
+        if (err) break;
     } while (0);
     return err;
 }
