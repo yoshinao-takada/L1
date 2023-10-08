@@ -149,6 +149,7 @@ static SLCerrno_t <VTYPE>AddAssUT()
             {
                 err = EXIT_FAILURE;
                 SLCLog<VTYPE>_ERR(err, "<VTYPE>_src0_plus_src1", "dst", i, <VTYPE>_src0_plus_src1, dst);
+                break;
             }
         }
     } while (0);

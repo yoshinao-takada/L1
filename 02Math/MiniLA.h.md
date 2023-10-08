@@ -22,6 +22,7 @@
 // Only near singular matrix error is detected in runtime.
 ```
 # Generic
+## Basic matrix operations
 ```
 #pragma region <VTYPE>_functions
 // --- basic matrix operations ---
@@ -48,6 +49,7 @@ void SLCMat<VTYPE>_TransConj(SLCPArray_t dst, SLCPCArray_t src);
 // dst = invese of src. work holds a work matrix for Gaussian elimination.
 SLCerrno_t SLCMat<VTYPE>_Inv(SLCPArray_t dst, SLCPCArray_t src, SLCPArray_t work);
 ```
+## Constant matrix
 ```
 // zero matrix
 void SLCMat<VTYPE>_0(SLCPArray_t dst);
@@ -55,6 +57,7 @@ void SLCMat<VTYPE>_0(SLCPArray_t dst);
 // identity matrix
 void SLCMat<VTYPE>_I(SLCPArray_t dst);
 ```
+## Linear equation solvers
 ```
 // --- linear equation solvers ---
 // solve fully determined linear equation
@@ -85,11 +88,14 @@ void SLCMat<VTYPE>_InitSolveODWorkMatSet(
 SLCerrno_t SLCMat<VTYPE>_SolveOD(SLCPArray_t dst, SLCPCArray_t left, SLCPCArray_t right,
     SLCMat<VTYPE>_PSolveODWorkMatSet_t wkset);
 ```
+## QR decomposition
 ```
 
 // QR decomposition
 void SLCMat<VTYPE>_QRD(SLCPArray_t dst, SLCPArray_t src);
-
+```
+## Utilities
+```
 // human readable print
 void SLCMat<VTYPE>_Print(FILE* out, const char* header, SLCPArray_t mat, const char* footer);
 #pragma endregion <VTYPE>_functions

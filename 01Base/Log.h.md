@@ -150,7 +150,7 @@ void SLCLogc128_ERR(SLCerrno_t err,
 #pragma region comparison_of_SLC<VTYPE>_t_numbers
 #define SLC<VTYPE>_abssum2(__a, __b) (SLC<VTYPE>_abs(__a) + SLC<VTYPE>_abs(__b))
 #define SLC<VTYPE>_absdiff(__a, __b) SLC<VTYPE>_abs((__a) - (__b))
-#define SLC<VTYPE>_relabsdiff(__a, __b) SLC<VTYPE>_absdiff(__a, __b)/SLC<VTYPE>_abssum2(__a, __b)
+#define SLC<VTYPE>_relabsdiff(__a, __b) (SLC<VTYPE>_absdiff(__a, __b)/SLC<VTYPE>_abssum2(__a, __b))
 #define SLC<VTYPE>_areequal(__a, __b, __tol) \
     (((SLC<VTYPE>_abs(__a) < __tol) || (SLC<VTYPE>_abs(__b) < __tol)) ? \
     (SLC<VTYPE>_absdiff(__a, __b) < __tol) : (SLC<VTYPE>_relabsdiff(__a, __b) < __tol))

@@ -30,7 +30,7 @@ static const char* HELP_MSG =
 "   <concatinated_labels> is case-insensitive, label order has no influence.\n";
 
 static const char* FUNC_LABELS[] = {
-    "Array", "DLink", "Log", "Numbers", "NumbersCopy", "Utils"
+     "Utils", "Array", "DLink", "Log", "Numbers", "NumbersCopy"
 };
 
 static const int FUNC_LABEL_COUNT = sizeof(FUNC_LABELS)/sizeof(FUNC_LABELS[0]);

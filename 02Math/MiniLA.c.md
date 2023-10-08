@@ -13,9 +13,12 @@
 #include "SLC/MiniLA.h"
 #include "SLC/NumbersCopy.h"
 #include "SLC/ExIO.h"
+#include "SLC/Log.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+// #define DEBUG_INV /* enable debug print in SLCMat<VTYPE>_Inv() */
+// #define DEBUG_SOLVE /* enable debug print in SLCMat<VTYPE>_Solve() */
 ```
 # Generic
 ## matrix-matrix addition
@@ -174,11 +177,9 @@ static void <VTYPE>_CopyFromRightHalf(SLC<VTYPE>_t* dst, SLC<ITYPE>_t dst_rows,
     const SLC<VTYPE>_t* src, SLC<ITYPE>_t src_stride
 ) {
     src+= dst_rows; // point the beginning of the right half of the work matrix
-    for (SLC<ITYPE>_t row = 0; row < dst_rows; row++)
+    for (SLC<ITYPE>_t row = 0; row < dst_rows; row++, dst += dst_rows, src += src_stride)
     {
         SLC<VTYPE>_copy(dst, 1, src, 1, dst_rows);
-        src += dst_rows;
-        dst += src_stride;
     }
 }
 
@@ -230,9 +231,13 @@ SLCerrno_t SLCMat<VTYPE>_Inv(SLCPArray_t dst, SLCPCArray_t src, SLCPArray_t work
         SLC<VTYPE>_t* work_row_head = work_elements; // the head element of the current pivot row
         SLC<ITYPE>_t work_row_length = work_columns;
         for (SLC<ITYPE>_t row = 0; row < src_rows; row++,
-            work_row_head += (work_columns + 1), // move to next row
+            work_row_head += (work_columns + 1), // move to next row and next column
             work_row_length--)
         {
+            #if defined(DEBUG_INV)
+            SLCLog_DBG("row=%d, before pivot selection -- ", row);
+            SLCMat<VTYPE>_Print(SLCLog_Sink, "", work, "");
+            #endif
             // Select the best pivot row
             SLC<ITYPE>_t new_pv_row = 
                 <VTYPE>_BestPivot(work_row_head, work_row_length, row, work_rows, work_columns);
@@ -247,23 +252,38 @@ SLCerrno_t SLCMat<VTYPE>_Inv(SLCPArray_t dst, SLCPCArray_t src, SLCPArray_t work
                 SLC<VTYPE>_swap(work_row_head, 1, row_head_to_swap, 1, work_row_length);
             }
 
+            #if defined(DEBUG_INV)
+            SLCLog_DBG("row=%d, before normalizing pivot -- ", row);
+            SLCMat<VTYPE>_Print(SLCLog_Sink, "", work, "");
+            #endif
             // Normalize pivot row
             SLC<VTYPE>_t scale = SLC<VTYPE>_units[1] / *work_row_head;
             SLCBLAS<VTYPE>_ScaleAss(work_row_head, &scale, work_row_length);
 
+            #if defined(DEBUG_INV)
+            SLCLog_DBG("row=%d, before eliminating pivot column -- ", row);
+            SLCMat<VTYPE>_Print(SLCLog_Sink, "", work, "");
+            #endif
             // Eliminate pivot column elements other than the pivot element
             SLC<VTYPE>_t* row_head_to_eliminate = work_elements + row;
             for (SLC<ITYPE>_t row2 = 0; row2 < work_rows; row2++, row_head_to_eliminate += work_columns)
             {
                 if (row == row2) continue; // skip eliminating
                 scale = -(*row_head_to_eliminate);
-                SLCBLAS<VTYPE>_ScaleAddAss(work_row_head, row_head_to_eliminate, &scale, work_row_length);
+                SLCBLAS<VTYPE>_ScaleAddAss(row_head_to_eliminate, work_row_head, &scale, work_row_length);
             }
         }
 
+        #if defined(DEBUG_INV)
+        SLCLog_DBG("After whole Gaussian elimination -- ");
+        SLCMat<VTYPE>_Print(SLCLog_Sink, "", work, "");
+        #endif
         if (err) continue; // src is singular
         // copy from work to dst
         <VTYPE>_CopyFromRightHalf(dst_elements, dst_rows, work_elements, work_columns);
+        #if defined(DEBUG_INV)
+        SLCMat<VTYPE>_Print(SLCLog_Sink, "dst -- ", dst, "");
+        #endif
     } while (0);
     return err;
 }
@@ -361,27 +381,32 @@ static void <VTYPE>_AssignBackward(SLCPArray_t dst, SLCPCArray_t work)
     SLC<ITYPE>_t work_rows = SLCArray_MatRows(work);
     SLC<ITYPE>_t work_columns = SLCArray_MatColumns(work);
     const SLC<VTYPE>_t* work_elements = work->data.<VTYPE>;
-    const SLC<VTYPE>_t* work_left_row_head = work_elements + (work_columns + 1) * (work_rows - 1);
-    const SLC<VTYPE>_t* work_right_row_head = work_left_row_head + 1;
+    const SLC<VTYPE>_t* work_left_row_head = work_elements + work_columns * (work_rows - 1);
+    const SLC<VTYPE>_t* work_right_row_head = work_left_row_head + work_rows;
     SLC<VTYPE>_t* dst_row_head = dst_elements + dst_columns * (dst_rows - 1);
-    for (SLC<ITYPE>_t backward_index = 0, work_row = work_rows;
+    for (SLC<ITYPE>_t backward_index = 0, work_row = work_rows - 1;
         backward_index < work_rows;
         backward_index++,
-        work_left_row_head -= (work_columns + 1),
+        work_row--,
+        work_left_row_head -= work_columns,
         work_right_row_head -= work_columns,
         dst_row_head -= dst_columns)
     {
         // copy the most significant term
         SLC<VTYPE>_copy(dst_row_head, 1, work_right_row_head, 1, dst_columns);
-        --work_row;
         for (SLC<ITYPE>_t left_column = work_row + 1; left_column < work_rows; left_column++)
         {
             for (SLC<ITYPE>_t dst_column = 0; dst_column < dst_columns; dst_column++)
             {
                 dst_row_head[dst_column] -= 
-                    work_left_row_head[left_column] * (dst_elements + left_column * dst_columns)[dst_column];
+                    work_left_row_head[left_column] *
+                    (dst_elements + left_column * dst_columns)[dst_column];
             }
         }
+        #if defined(DEBUG_SOLVE)
+        SLCLog_DBG("work_row = %d -- ", work_row);
+        SLCMat<VTYPE>_Print(SLCLog_Sink, "", dst, "");
+        #endif
     }
 }
 ```
@@ -426,6 +451,10 @@ SLCerrno_t SLCMat<VTYPE>_Solve(
             row < work_rows;
             row++, work_row_length--, work_row_head += (work_columns + 1))
         {
+            #if defined(DEBUG_SOLVE)
+            SLCLog_DBG("row = %d, work_row_length = %d\n", row, work_row_length);
+            SLCMat<VTYPE>_Print(SLCLog_Sink, "Before pivot selection -- ", work, "");
+            #endif
             // select the best pivot row
             SLC<ITYPE>_t pv_row = <VTYPE>_BestPivot(
                 work_row_head, work_row_length, row, work_rows, work_columns);
@@ -440,15 +469,22 @@ SLCerrno_t SLCMat<VTYPE>_Solve(
                     work_row_head + (pv_row - row) * work_columns, 1, work_row_length);
             }
 
+            #if defined(DEBUG_SOLVE)
+            SLCMat<VTYPE>_Print(SLCLog_Sink, "Before normalizing pivot row -- ", work, "");
+            #endif
             // normalize the pivot row
             SLC<VTYPE>_t scale = _1 / *work_row_head;
             *work_row_head = _1;
             SLCBLAS<VTYPE>_ScaleAss(work_row_head + 1, &scale, work_row_length - 1);
 
+            #if defined(DEBUG_SOLVE)
+            SLCMat<VTYPE>_Print(SLCLog_Sink, "Before eliminating pivot column -- ", work, "");
+            #endif
             // eliminate pivot column elements beneath the pivot row
             if ((row + 1) == work_rows) continue;
             SLC<VTYPE>_t* row_head_to_eliminate = work_row_head + work_columns;
-            for (SLC<ITYPE>_t row2 = row + 1; row2 < work_rows; row2++)
+            for (SLC<ITYPE>_t row2 = row + 1; row2 < work_rows;
+                row2++, row_head_to_eliminate += work_columns)
             {
                 scale = -(*row_head_to_eliminate);
                 *row_head_to_eliminate = _0;
@@ -457,6 +493,9 @@ SLCerrno_t SLCMat<VTYPE>_Solve(
             }
         }
 
+        #if defined(DEBUG_SOLVE)
+        SLCMat<VTYPE>_Print(SLCLog_Sink, "After whole Gaussian elimination -- ", work, "");
+        #endif
         if (err) continue; // left is singular.
         // backward assignment
         <VTYPE>_AssignBackward(dst, work);

@@ -35,7 +35,7 @@ $(DEBUG_OBJDIR)/NumbersCopy.o	:	NumbersCopy.c $(INCDIR)/SLC/NumbersCopy.h
 	mkdir -p $(DEBUG_OBJDIR)
 	$(CC) $(DEBUG_CCFLAGS) -o $@ $<
 
-$(DEBUG_OBJDIR)/Log.o	:	Log.c $(INCDIR)/SLC/Log.h
+$(DEBUG_OBJDIR)/Log.o	:	Log.c $(INCDIR)/SLC/Log.h $(INCDIR)/SLC/ExIO.h
 	mkdir -p $(DEBUG_OBJDIR)
 	$(CC) $(DEBUG_CCFLAGS) -o $@ $<
 
@@ -61,7 +61,7 @@ $(RELEASE_OBJDIR)/NumbersCopy.o	:	NumbersCopy.c $(INCDIR)/SLC/NumbersCopy.h
 	mkdir -p $(RELEASE_OBJDIR)
 	$(CC) $(RELEASE_CCFLAGS) -o $@ $<
 
-$(RELEASE_OBJDIR)/Log.o	:	Log.c $(INCDIR)/SLC/Log.h
+$(RELEASE_OBJDIR)/Log.o	:	Log.c $(INCDIR)/SLC/Log.h $(INCDIR)/SLC/ExIO.h
 	mkdir -p $(RELEASE_OBJDIR)
 	$(CC) $(RELEASE_CCFLAGS) -o $@ $<
 

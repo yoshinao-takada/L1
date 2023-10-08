@@ -98,8 +98,9 @@ SLCPArray_t SLCArray_InitHeader2(SLCPArray_t __ptr, const SLC4i16_t __size);
     ((1 + (__a)->cont.i16[2]) == (__inv)->cont.i16[2])
 #define SLCArray_MatRows(__m) (__m)->cont.i16[2]
 #define SLCArray_MatColumns(__m) (__m)->cont.i16[1]
-#define SLC_TransposedMatSize(__matsize) { __matsize[0], __matsize[2], __matsize[1], 1 }
+#define SLCArray_TransposedMatSize(__matsize) { __matsize[0], __matsize[2], __matsize[1], 1 }
 #define SLCinvMatWorkSize(__matsize) { __matsize[0], 2 * __matsize[1], 1 + __matsize[2], 1 }
-#define SLC_SolveWorkSize(__matLsize, __matRsize) { \
+#define SLCArray_SolveWorkSize(__matLsize, __matRsize) { \
     __matLsize[0], __matLsize[1]+__matRsize[1], 1 + __matLsize[2], 1 }
+#define SLCArray_SafeFree(__a) if (__a) { free(__a); __a = NULL; }
 #endif
