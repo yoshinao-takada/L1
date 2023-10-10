@@ -99,6 +99,52 @@ void SLCPolar<VTYPE>_FromCartesian(SLCPPolar<VTYPE>_t polar, SLCCPnt<VTYPE>_t ca
 */
 void SLCPolar<VTYPE>_ToCartesian(SLCPnt<VTYPE>_t cartesian, SLCPCPolar<VTYPE>_t polar);
 ```
+## Line Properties and Plane Properties
+Line and plane properties are declared as
+```
+// A line and a plane can be represented by a point and a unit vector.
+typedef struct {
+    SLC4<VTYPE>_t p0; // reference point
+    SLC4<VTYPE>_t v0; // a unit vector of line direction or plane normal
+} SLCLinePlane<VTYPE>_t, *SLCPLinePlane<VTYPE>_t;
+typedef const SLCLinePlane<VTYPE>_t *SLCPCLinePlane<VTYPE>_t;
+```
+The API to get a set of line properties is declared as
+```
+/*!
+\brief Create a line object from two 3D points in homobeneous coordinate
+\param line [out] line object
+\param p0 [in] a point
+\param p1 [in] another point
+\return SLC_ESINGULAR if p0 and p1 are too close.
+*/
+SLCerrno_t SLCLine<VTYPE>_Property
+(SLCPLinePlane<VTYPE>_t line, SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1);
+```
+The API to get a set of plane properties is declared as
+```
+/*!
+\brief Create a plane object from three 3D points in homobeneous coordinate
+\param line [out] line object
+\param p0 [in] a point
+\param p1 [in] another point
+\param p2 [in] 2nd another point
+\return SLC_ESINGULAR if |(p1-p0)x(p2-p0)| is too small
+*/
+SLCerrno_t SLCPlane<VTYPE>_Property
+(SLCPLinePlane<VTYPE>_t line, SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCCPnt<VTYPE>_t p2);
+```
+Basic vector operations are declared as
+```
+// cross product
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_Cross(SLCCVec<VTYPE>_t v0, SLCCVec<VTYPE>_t v1, SLCVec<VTYPE>_t work);
+
+// dot product
+SLC<VTYPE>_t SLCVec<VTYPE>_Dot(SLCCVec<VTYPE>_t v0, SLCCVec<VTYPE>_t v1);
+
+// two points to a vector
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_From2Points(SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCVec<VTYPE>_t work);
+```
 # Foot
 ```
 #endif

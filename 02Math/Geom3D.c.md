@@ -243,6 +243,87 @@ void SLCPolar<VTYPE>_ToCartesian(SLCPnt<VTYPE>_t cartesian, SLCPCPolar<VTYPE>_t 
 }
 
 ```
+## Line Properties and Plane Properties
+The line properties are determined by two points, __P__<sub>0</sub> and __P__<sub>1</sub>.
+The reference point is equal to __P__<sub>0</sub>. The unit direction vector is
+(__P__<sub>1</sub> - __P__<sub>0</sub>)/|__P__<sub>1</sub> - __P__<sub>0</sub>|.
+```
+SLCerrno_t SLCLine<VTYPE>_Property
+(SLCPLinePlane<VTYPE>_t line, SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1)
+{
+    SLC4<VTYPE>_t _p1_p0;
+    SLCVec<VTYPE>_From2Points(p0, p1, _p1_p0);
+    const SLC<VTYPE>_t AbsDiff_p1_p0 = SLC<VTYPE>sqrt(SLCVec<VTYPE>_Dot(_p1_p0, _p1_p0));
+    if (AbsDiff_p1_p0 < SLC<VTYPE>_stdtol)
+    {
+        return SLC_EDIVBY0;
+    }
+    SLCcopy4(line->p0, p0);
+    line->v0[0] = _p1_p0[0]/AbsDiff_p1_p0;
+    line->v0[1] = _p1_p0[1]/AbsDiff_p1_p0;
+    line->v0[2] = _p1_p0[2]/AbsDiff_p1_p0;
+    line->v0[3] = _p1_p0[3];
+    return EXIT_SUCCESS;
+}
+```
+A set of plane properties is determined by three points, __P__<sub>0</sub>, __P__<sub>1</sub> and __P__<sub>2</sub>. The plane normal is determined by cross-product of
+(__P__<sub>1</sub> - __P__<sub>0</sub>) and (__P__<sub>2</sub> - __P__<sub>0</sub>).
+The reference point is equal to __P__<sub>0</sub>. The API is defined as
+```
+SLCerrno_t SLCPlane<VTYPE>_Property
+(SLCPLinePlane<VTYPE>_t plane, SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCCPnt<VTYPE>_t p2)
+{
+    SLCcopy4(plane->p0, p0);
+    SLC4<VTYPE>_t _p1_p0, _p2_p0, cross;
+    SLCVec<VTYPE>_From2Points(p0, p1, _p1_p0);
+    SLCVec<VTYPE>_From2Points(p0, p2, _p2_p0);
+    SLCVec<VTYPE>_Cross(_p1_p0, _p2_p0, cross);
+    const SLC<VTYPE>_t 
+        AbsCross = SLC<VTYPE>sqrt(SLCVec<VTYPE>_Dot(cross, cross)),
+        _1 = SLC<VTYPE>_units[1];
+    if (AbsCross < SLC<VTYPE>_stdtol)
+    {
+        return SLC_EDIVBY0;
+    }
+    const SLC<VTYPE>_t _1_AbsCross = _1/AbsCross;
+    plane->v0[0] = cross[0] * _1_AbsCross;
+    plane->v0[1] = cross[1] * _1_AbsCross;
+    plane->v0[2] = cross[2] * _1_AbsCross;
+    plane->v0[3] = _1;
+    return EXIT_SUCCESS;
+}
+```
+Basic vector operations are defined as
+```
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_Cross(SLCCVec<VTYPE>_t v0, SLCCVec<VTYPE>_t v1, SLCVec<VTYPE>_t work)
+{
+    SLC<VTYPE>_t coeff = v0[3] * v1[3];
+    work[0] = (v0[1] * v1[2] - v0[2] * v1[1]) * coeff;
+    work[1] = (v0[2] * v1[0] - v0[0] * v1[2]) * coeff;
+    work[2] = (v0[0] * v1[1] - v0[1] * v1[0]) * coeff;
+    work[3] = (SLC<VTYPE>_t)1;
+    return work;
+}
+
+SLC<VTYPE>_t SLCVec<VTYPE>_Dot(SLCCVec<VTYPE>_t v0, SLCCVec<VTYPE>_t v1)
+{
+    SLC<VTYPE>_t dot = 
+        (v0[0] * v1[0] + v0[1] * v1[1] + v0[2] * v1[2])/(v0[3] * v1[3]);
+    return dot;
+}
+
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_From2Points(SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCVec<VTYPE>_t work)
+{
+    const SLC<VTYPE>_t _1 = SLC<VTYPE>_units[1];
+    const SLC<VTYPE>_t _1_p0_w = _1 / p0[3];
+    const SLC<VTYPE>_t _1_p1_w = _1 / p1[3];
+    work[0] = p1[0] * _1_p1_w - p0[0] * _1_p0_w;
+    work[1] = p1[1] * _1_p1_w - p0[1] * _1_p0_w;
+    work[2] = p1[2] * _1_p1_w - p0[2] * _1_p0_w;
+    work[3] = _1;
+    return work;
+}
+```
 # Foot
 ```
 ```
