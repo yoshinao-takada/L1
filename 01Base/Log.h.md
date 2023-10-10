@@ -154,7 +154,7 @@ void SLCLogc128_ERR(SLCerrno_t err,
 #define SLC<VTYPE>_areequal(__a, __b, __tol) \
     (((SLC<VTYPE>_abs(__a) < __tol) || (SLC<VTYPE>_abs(__b) < __tol)) ? \
     (SLC<VTYPE>_absdiff(__a, __b) < __tol) : (SLC<VTYPE>_relabsdiff(__a, __b) < __tol))
-#define SLC<VTYPE>Pnt_areequal(__p0, __p1, __tol) ( \
+#define SLCPnt<VTYPE>_areequal(__p0, __p1, __tol) ( \
     SLC<VTYPE>_areequal((__p0)[0]/(__p0)[3], (__p1)[0]/(__p1)[3], __tol) && \
     SLC<VTYPE>_areequal((__p0)[1]/(__p0)[3], (__p1)[1]/(__p1)[3], __tol) && \
     SLC<VTYPE>_areequal((__p0)[2]/(__p0)[3], (__p1)[2]/(__p1)[3], __tol))

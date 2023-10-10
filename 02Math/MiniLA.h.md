@@ -20,6 +20,31 @@
 // The matrix methods assume that matrix size mismatch errors are detected
 // in developing time and do NOT check the errors in runtime.
 // Only near singular matrix error is detected in runtime.
+
+/*!
+\brief working matrix set for overly determined linear equation
+*/
+typedef struct {
+    SLCPArray_t
+        leftT, /* transpose of left */
+        leftTC, /* transpose-conjugate of left */
+        leftTC_left, /* product of leftTC and left; i.e. leftTC * left */
+        rightT, /* transpose of right */
+        leftTC_right, /* product of leftTC and right; i.e. leftTC * right */
+        work; /* work matrix for a fully determined linear equation, leftTC_left * dst = leftTC_right */
+} SLCMat_SolveODWorkMatSet_t, *SLCMat_PSolveODWorkMatSet_t;
+
+
+// create working matrix set for EasySolveOD
+void SLCMat_InitSolveODWorkMatSet(
+    SLCPCArray_t left, SLCPCArray_t right, SLCMat_PSolveODWorkMatSet_t wkset);
+
+/*!
+\brief destroy a working matrix set for overly determined linear equation.
+\param wkset [in] the pointer to the matrix set. pointers in wkset are released but wkset
+    is not release.
+*/
+void SLCMat_DestroySolveODWorkMatSet(SLCMat_PSolveODWorkMatSet_t wkset);
 ```
 # Generic
 ## Basic matrix operations
@@ -70,23 +95,10 @@ SLCerrno_t SLCMat<VTYPE>_Solve(
 // solve overly determined linear equation with an easy API hiding work matrices.
 SLCerrno_t SLCMat<VTYPE>_EasySolveOD(SLCPArray_t dst, SLCPCArray_t left, SLCPCArray_t right);
 
-typedef struct {
-    SLCPArray_t leftT, /* transpose of left */
-        leftTC, /* transpose-conjugate of left */
-        leftTC_left, /* product of leftTC and left; i.e. leftTC * left */
-        rightT, /* transpose of right */
-        leftTC_right, /* product of leftTC and right; i.e. leftTC * right */
-        work; /* work matrix for a fully determined linear equation, leftTC_left * dst = leftTC_right */
-} SLCMat<VTYPE>_SolveODWorkMatSet_t, *SLCMat<VTYPE>_PSolveODWorkMatSet_t;
-
-// create working matrix set for EasySolveOD
-void SLCMat<VTYPE>_InitSolveODWorkMatSet(
-    SLCPCArray_t left, SLCPCArray_t right, SLCMat<VTYPE>_PSolveODWorkMatSet_t wkset);
-
 // solve overly determined linear equation with explicitly defined work matrices.
 // It is a little quicker than the easy version.
 SLCerrno_t SLCMat<VTYPE>_SolveOD(SLCPArray_t dst, SLCPCArray_t left, SLCPCArray_t right,
-    SLCMat<VTYPE>_PSolveODWorkMatSet_t wkset);
+    SLCMat_PSolveODWorkMatSet_t wkset);
 ```
 ## QR decomposition
 ```

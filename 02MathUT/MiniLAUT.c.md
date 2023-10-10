@@ -44,6 +44,16 @@ static const SLCr32_t r32right[] = {
     2.0f, -10.0f,
     2.5f, -5.5f
 };
+// 5x3 matrix
+static const SLCr32_t r32leftOD[] = {
+    -1.0f, -2.0f, -2.0f,
+    -4.0f, 2.0f, 2.2f,
+    -3.3f, -5.0f, 1.5f,
+    -4.0f, 2.2f, 2.0f,
+    -3.3f, 1.5f, -5.0f,
+};
+// solution for overly determined linear equation
+static const SLCr32_t* r32solutionOD = r32right;
 
 static const SLCr32_t r32scale0 = 1.1f, r32scale1 = -1.5f;
 
@@ -95,6 +105,16 @@ static const SLCr64_t r64right[] = {
     2.0, -10.0,
     2.5, -5.5
 };
+// 5x3 matrix
+static const SLCr64_t r64leftOD[] = {
+    -1.0, -2.0, -2.0,
+    -4.0, 2.0, 2.2,
+    -3.3, -5.0, 1.5,
+    -4.0, 2.2, 2.0,
+    -3.3, 1.5, -5.0
+};
+// solution for overly determined linear equation
+static const SLCr64_t* r64solutionOD = r64right;
 
 static const SLCr64_t r64scale0 = 1.1, r64scale1 = -1.5f;
 
@@ -146,6 +166,16 @@ static const SLCc64_t c64right[] = {
     CMPLXF(2.5f, -2.2f), CMPLXF(-5.5f, -2.5f),
     CMPLXF(-0.5f, 0.5f), CMPLXF(2.5f, 2.2f)
 };
+// 5x3 matrix
+static const SLCc64_t c64leftOD[] = {
+    CMPLXF(-1.0f, -2.0f), CMPLXF(-2.0f, -4.0f), CMPLXF(2.0f, 2.2f),
+    CMPLXF(-4.0f, 2.0f), CMPLXF(2.2f, -3.3f), CMPLXF(-5.0f, 1.5f),
+    CMPLXF(-3.3f, -5.0f), CMPLXF(1.5f, -1.0f), CMPLXF(-2.0f, -2.0f),
+    CMPLXF(-4.0f, 2.0f), CMPLXF(-5.0f, 1.5f), CMPLXF(2.2f, -3.3f),
+    CMPLXF(-3.3f, -5.0f), CMPLXF(-2.0f, -2.0f), CMPLXF(1.5f, -1.0f)
+};
+// solution for overly determined linear equation
+static const SLCc64_t* c64solutionOD = c64right;
 
 static const SLCc64_t c64scale0 = CMPLXF(0.1f,1.1f), c64scale1 = CMPLXF(-1.5f,0.1f);
 
@@ -197,6 +227,16 @@ static const SLCc128_t c128right[] = {
     CMPLX(2.5, -2.2), CMPLX(-5.5, -2.5),
     CMPLX(-0.5, 0.5), CMPLX(2.5, 2.2)
 };
+// 5x3 matrix
+static const SLCc128_t c128leftOD[] = {
+    CMPLX(-1.0, -2.0), CMPLX(-2.0, -4.0), CMPLX(2.0, 2.2),
+    CMPLX(-4.0, 2.0), CMPLX(2.2, -3.3), CMPLX(-5.0, 1.5),
+    CMPLX(-3.3, -5.0), CMPLX(1.5, -1.0), CMPLX(-2.0, -2.0),
+    CMPLX(-4.0, 2.0), CMPLX(-5.0, 1.5), CMPLX(2.2, -3.3),
+    CMPLX(-3.3, -5.0), CMPLX(-2.0, -2.0), CMPLX(1.5, -1.0)
+};
+// solution for overly determined linear equation
+static const SLCc128_t* c128solutionOD = c128right;
 
 static const SLCc128_t c128scale0 = CMPLX(0.1,1.1), c128scale1 = CMPLX(-1.5,0.1);
 
@@ -234,6 +274,8 @@ static const SLC4i16_t <VTYPE>matsize4x3 = { sizeof(SLC<VTYPE>_t), 3, 4, 1 };
 static const SLC4i16_t <VTYPE>matsize3x3 = { sizeof(SLC<VTYPE>_t), 3, 3, 1 };
 static const SLC4i16_t <VTYPE>matsize3x6 = { sizeof(SLC<VTYPE>_t), 6, 3, 1 };
 static const SLC4i16_t <VTYPE>matsize3x5 = { sizeof(SLC<VTYPE>_t), 5, 3, 1 };
+static const SLC4i16_t <VTYPE>matsize5x2 = { sizeof(SLC<VTYPE>_t), 2, 5, 1 };
+static const SLC4i16_t <VTYPE>matsize2x5 = { sizeof(SLC<VTYPE>_t), 5, 2, 1 };
 ```
 ## add two matrices
 ```
@@ -442,9 +484,82 @@ static SLCerrno_t <VTYPE>SolveUT()
 ```
 ## Solve an overly determined equation
 ```
+SLCerrno_t <VTYPE>SolveODUT()
+{
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLCArray_t left = {{{sizeof(SLC<VTYPE>_t), 3, 5, 1}}, { <VTYPE>leftOD }};
+    SLCArray_t ref_solution = {{{sizeof(SLC<VTYPE>_t), 2, 3, 1}}, { <VTYPE>solutionOD }};
+    SLCPArray_t right = SLCArray_Alloc(<VTYPE>matsize5x2),
+        work_mult = SLCArray_Alloc(<VTYPE>matsize2x3),
+        dst = SLCArray_Alloc(ref_solution.cont.i16);
+    SLCMat_SolveODWorkMatSet_t wkset = { NULL, NULL, NULL, NULL, NULL, NULL };
+    do {
+        // create RHS
+        SLCMat<VTYPE>_Multiply(right, &left, &ref_solution, work_mult);
+
+        // create working matrix set
+        SLCMat_InitSolveODWorkMatSet(&left, right, &wkset);
+
+        // solve equation
+        err = SLCMat<VTYPE>_SolveOD(dst, &left, right, &wkset);
+        if (err)
+        {
+            SLCLog_ERR(err, "Fail in SLCMat<VTYPE>_SolveOD() @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+
+        // compare results
+        err = <VTYPE>CompareMat(&ref_solution, dst);
+        if (err)
+        {
+            SLCLog_ERR(err, "Value mismatcin @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLCArray_SafeFree(right);
+    SLCArray_SafeFree(work_mult);
+    SLCArray_SafeFree(dst);
+    SLCMat_DestroySolveODWorkMatSet(&wkset);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
 ```
 ## Simplified API to solve overly determined equation
 ```
+SLCerrno_t <VTYPE>EasySolveODUT()
+{
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLCArray_t left = {{{sizeof(SLC<VTYPE>_t), 3, 5, 1}}, { <VTYPE>leftOD }};
+    SLCArray_t ref_solution = {{{sizeof(SLC<VTYPE>_t), 2, 3, 1}}, { <VTYPE>solutionOD }};
+    SLCPArray_t right = SLCArray_Alloc(<VTYPE>matsize5x2),
+        work_mult = SLCArray_Alloc(<VTYPE>matsize2x3),
+        dst = SLCArray_Alloc(ref_solution.cont.i16);
+    do {
+        // create RHS
+        SLCMat<VTYPE>_Multiply(right, &left, &ref_solution, work_mult);
+
+        // solve
+        err = SLCMat<VTYPE>_EasySolveOD(dst, &left, right);
+        if (err)
+        {
+            SLCLog_ERR(err, "Fail in SLCMat<VTYPE>_EasySolveOD() @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+
+        // compare results
+        err = <VTYPE>CompareMat(&ref_solution, dst);
+        if (err)
+        {
+            SLCLog_ERR(err, "Value mismatcin @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLCArray_SafeFree(right);
+    SLCArray_SafeFree(work_mult);
+    SLCArray_SafeFree(dst);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
 ```
 ## Submain function harnessing the tests above
 ```
@@ -463,6 +578,10 @@ SLCerrno_t <VTYPE>MiniLAUT()
         err = <VTYPE>InvertUT();
         if (err) break;
         err = <VTYPE>SolveUT();
+        if (err) break;
+        err = <VTYPE>SolveODUT();
+        if (err) break;
+        err = <VTYPE>EasySolveODUT();
         if (err) break;
     } while (0);
     SLC_testend(err, __FUNCTION__, __LINE__);

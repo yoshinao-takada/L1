@@ -17,8 +17,43 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-// #define DEBUG_INV /* enable debug print in SLCMat<VTYPE>_Inv() */
-// #define DEBUG_SOLVE /* enable debug print in SLCMat<VTYPE>_Solve() */
+// #define DEBUG_INV /* enable debug print in SLCMat<VTYPE>_Inv() (<VTYPE>=[r32 | r64 | c64 | c128]) */
+// #define DEBUG_SOLVE /* enable debug print in SLCMat<VTYPE>_Solve() (<VTYPE>=[r32 | r64 | c64 | c128]) */
+// #define DEBUG_SOLVEOD /* enable debug print in SLCMat<VTYPE>_SolveOD() (<VTYPE>=[r32 | r64 | c64 | c128]) */
+
+void SLCMat_DestroySolveODWorkMatSet(SLCMat_PSolveODWorkMatSet_t wkset)
+{
+    assert(wkset);
+    SLCArray_SafeFree(wkset->leftT);
+    SLCArray_SafeFree(wkset->leftTC);
+    SLCArray_SafeFree(wkset->leftTC_left);
+    SLCArray_SafeFree(wkset->rightT);
+    SLCArray_SafeFree(wkset->leftTC_right);
+    SLCArray_SafeFree(wkset->work);
+}
+
+void SLCMat_InitSolveODWorkMatSet(
+    SLCPCArray_t left, SLCPCArray_t right, SLCMat_PSolveODWorkMatSet_t wkset
+) {
+    SLCi16_t unitsize = SLCArray_UnitSize(left);
+    assert(SLCArray_UnitSize(right) == unitsize);
+    SLCi16_t left_rows = SLCArray_MatRows(left);
+    SLCi16_t right_rows = SLCArray_MatRows(right);
+
+    const SLC4i16_t leftT_size = { unitsize, left->cont.i16[2], left->cont.i16[1], 1 };
+    const SLC4i16_t leftTC_left_size = { unitsize, SLCArray_MatColumns(left), SLCArray_MatColumns(left), 1 };
+    const SLC4i16_t rightT_size = { unitsize, right->cont.i16[2], right->cont.i16[1], 1 };
+    const SLC4i16_t leftTC_right_size = 
+        { unitsize, SLCArray_MatColumns(right), SLCArray_MatColumns(left), 1 };
+    const SLC4i16_t work_size = 
+        { unitsize, leftTC_left_size[1] + leftTC_right_size[1], leftTC_left_size[2], 1 };
+    wkset->leftT = SLCArray_Alloc(leftT_size);
+    wkset->leftTC = SLCArray_Alloc(leftT_size);
+    wkset->leftTC_left = SLCArray_Alloc(leftTC_left_size);
+    wkset->rightT = SLCArray_Alloc(rightT_size);
+    wkset->leftTC_right = SLCArray_Alloc(leftTC_right_size);
+    wkset->work = SLCArray_Alloc(work_size);
+}
 ```
 # Generic
 ## matrix-matrix addition
@@ -145,6 +180,7 @@ void SLCMat<VTYPE>_TransConj(SLCPArray_t dst, SLCPCArray_t src)
             *dst_elements = SLC<VTYPE>_conj(src_elements[src_column]);
             dst_elements += dst_columns;
         }
+        src_elements += src_columns;
     }
 }
 ```
@@ -314,6 +350,7 @@ void SLCMat<VTYPE>_I(SLCPArray_t dst)
 #pragma endregion <VTYPE>_basic_matrix_operations
 ```
 ## Linear equation solvers
+### Utility function for linear equation solvers
 ```
 #pragma region <VTYPE>_linear_equation_solvers
 static void <VTYPE>_CopyRHS(
@@ -326,7 +363,7 @@ static void <VTYPE>_CopyRHS(
     }
 }
 ```
-## Backward assignment
+### Backward assignment
 Considering a upper trianglular matrix and a multicolumn right hand side matrix.
 Consequently a solution is also a multicolumn matrix.
 
@@ -410,7 +447,7 @@ static void <VTYPE>_AssignBackward(SLCPArray_t dst, SLCPCArray_t work)
     }
 }
 ```
-## Solver main body
+### Solver main body
 It consists of
 * Assertion for matrix size matching
 * Copying LHS and RHS to the working matrix
@@ -503,52 +540,21 @@ SLCerrno_t SLCMat<VTYPE>_Solve(
     return err;
 }
 ```
-## Overly determined equation
+### Overly determined equation
 It is possible to solve overly determined linear simultaneous equations by
 least-mean-square method.
 ```
-void SLCMat<VTYPE>_InitSolveODWorkMatSet(
-    SLCPCArray_t left, SLCPCArray_t right, SLCMat<VTYPE>_PSolveODWorkMatSet_t wkset
-) {
-    SLCi16_t unitsize = SLCArray_UnitSize(left);
-    assert(SLCArray_UnitSize(right) == unitsize);
-    SLCi16_t left_rows = SLCArray_MatRows(left);
-    SLCi16_t right_rows = SLCArray_MatRows(right);
-
-    const SLC4i16_t leftT_size = { unitsize, left->cont.i16[2], left->cont.i16[1], 1 };
-    const SLC4i16_t leftTC_left_size = { unitsize, SLCArray_MatColumns(left), SLCArray_MatColumns(left), 1 };
-    const SLC4i16_t rightT_size = { unitsize, right->cont.i16[2], right->cont.i16[1], 1 };
-    const SLC4i16_t leftTC_right_size = 
-        { unitsize, SLCArray_MatColumns(right), SLCArray_MatColumns(left), 1 };
-    const SLC4i16_t work_size = 
-        { unitsize, leftTC_left_size[1] + leftTC_right_size[1], leftTC_left_size[2], 1 };
-    wkset->leftT = SLCArray_Alloc(leftT_size);
-    wkset->leftTC_left = SLCArray_Alloc(leftTC_left_size);
-    wkset->rightT = SLCArray_Alloc(rightT_size);
-    wkset->leftTC_right = SLCArray_Alloc(leftTC_right_size);
-    wkset->work = SLCArray_Alloc(work_size);
-}
-
-#define TEMP_SAFE_FREE(__pmat) if (__pmat) { free(__pmat);  __pmat = NULL; }
-void SLCMat<VTYPE>_FreeSolveODWorkMatSet(SLCMat<VTYPE>_PSolveODWorkMatSet_t wkset)
-{
-    TEMP_SAFE_FREE(wkset->leftT);
-    TEMP_SAFE_FREE(wkset->leftTC_left);
-    TEMP_SAFE_FREE(wkset->rightT);
-    TEMP_SAFE_FREE(wkset->leftTC_right);
-    TEMP_SAFE_FREE(wkset->work);
-}
-#undef TEMP_SAFE_FREE
-
 SLCerrno_t SLCMat<VTYPE>_EasySolveOD(SLCPArray_t dst, SLCPCArray_t left, SLCPCArray_t right)
 {
-    SLCMat<VTYPE>_SolveODWorkMatSet_t objwkset;
+    SLCMat_SolveODWorkMatSet_t objwkset;
+    SLCMat_InitSolveODWorkMatSet(left, right, &objwkset);
     SLCerrno_t err = SLCMat<VTYPE>_SolveOD(dst, left, right, &objwkset);
-    SLCMat<VTYPE>_FreeSolveODWorkMatSet(&objwkset);
+    SLCMat_DestroySolveODWorkMatSet(&objwkset);
+    return err;
 }
 
 SLCerrno_t SLCMat<VTYPE>_SolveOD(SLCPArray_t dst, SLCPCArray_t left, SLCPCArray_t right,
-    SLCMat<VTYPE>_PSolveODWorkMatSet_t wkset
+    SLCMat_PSolveODWorkMatSet_t wkset
 ) {
     SLCerrno_t err = EXIT_SUCCESS;
     SLC<ITYPE>_t dst_rows = SLCArray_MatRows(dst), dst_columns = SLCArray_MatColumns(dst);
@@ -558,6 +564,11 @@ SLCerrno_t SLCMat<VTYPE>_SolveOD(SLCPArray_t dst, SLCPCArray_t left, SLCPCArray_
     SLCMat<VTYPE>_TransConj(wkset->leftTC, left);
     SLCMat<VTYPE>_Multiply(wkset->leftTC_left, wkset->leftTC, left, wkset->leftT);
     SLCMat<VTYPE>_Multiply(wkset->leftTC_right, wkset->leftTC, right, wkset->rightT);
+    #if defined(DEBUG_SOLVEOD)
+    SLCMat<VTYPE>_Print(SLCLog_Sink, "leftTC -- ", wkset->leftTC, "");
+    SLCMat<VTYPE>_Print(SLCLog_Sink, "leftTC_left -- ", wkset->leftTC_left, "");
+    SLCMat<VTYPE>_Print(SLCLog_Sink, "leftTC_right -- ", wkset->leftTC_right, "");
+    #endif
     err = SLCMat<VTYPE>_Solve(dst, wkset->leftTC_left, wkset->leftTC_right, wkset->work);
     return err;
 }

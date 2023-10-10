@@ -7,6 +7,8 @@ include/
 01BaseUT/ExecuteNumbersCopyUT.c
 02Math/MiniBLAS.c
 02Math/MiniLA.c
+02Math/Geom3D.c
 02MathUT/MiniBLASUT.c
 02MathUT/MiniLAUT.c
+02MathUT/Geom3DUT.c
 access-token.txt
