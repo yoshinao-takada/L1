@@ -62,21 +62,21 @@ SLCCTMat<VTYPE>_t SLCTMat<VTYPE>_Translate(SLCCVec<VTYPE>_t move, SLCTMat<VTYPE>
 */
 SLCCTMat<VTYPE>_t SLCTMat<VTYPE>_RotateZ(SLC<VTYPE>_t c, SLC<VTYPE>_t s, SLCTMat<VTYPE>_t work);
 #define SLCTMat<VTYPE>_RotateZrad(__rad, __work) \
-    SLCTMat<VTYPE>_RotateZ(SLC<VTYPE>cos(__rad), SLC<VTYPE>sin(__rad), __work)
+    SLCTMat<VTYPE>_RotateZ(SLC<VTYPE>_cos(__rad), SLC<VTYPE>_sin(__rad), __work)
 #define SLCTMat<VTYPE>_RotateZdeg(__deg, __work) \
-    SLCTMat<VTYPE>_RotateZrad(SLC<VTYPE>deg2rad(__deg), __work)
+    SLCTMat<VTYPE>_RotateZrad(SLC<VTYPE>_deg2rad(__deg), __work)
 
 SLCCTMat<VTYPE>_t SLCTMat<VTYPE>_RotateX(SLC<VTYPE>_t c, SLC<VTYPE>_t s, SLCTMat<VTYPE>_t work);
 #define SLCTMat<VTYPE>_RotateXrad(__rad, __work) \
-    SLCTMat<VTYPE>_RotateX(SLC<VTYPE>cos(__rad), SLC<VTYPE>sin(__rad), __work)
+    SLCTMat<VTYPE>_RotateX(SLC<VTYPE>_cos(__rad), SLC<VTYPE>_sin(__rad), __work)
 #define SLCTMat<VTYPE>_RotateXdeg(__deg, __work) \
-    SLCTMat<VTYPE>_RotateXrad(SLC<VTYPE>deg2rad(__deg), __work)
+    SLCTMat<VTYPE>_RotateXrad(SLC<VTYPE>_deg2rad(__deg), __work)
 
 SLCCTMat<VTYPE>_t SLCTMat<VTYPE>_RotateY(SLC<VTYPE>_t c, SLC<VTYPE>_t s, SLCTMat<VTYPE>_t work);
 #define SLCTMat<VTYPE>_RotateYrad(__rad, __work) \
-    SLCTMat<VTYPE>_RotateY(SLC<VTYPE>cos(__rad), SLC<VTYPE>sin(__rad), __work)
+    SLCTMat<VTYPE>_RotateY(SLC<VTYPE>_cos(__rad), SLC<VTYPE>_sin(__rad), __work)
 #define SLCTMat<VTYPE>_RotateYdeg(__deg, __work) \
-    SLCTMat<VTYPE>_RotateYrad(SLC<VTYPE>deg2rad(__deg), __work)
+    SLCTMat<VTYPE>_RotateYrad(SLC<VTYPE>_deg2rad(__deg), __work)
 ```
 ## Polar-Cartesian Conversion
 ```
@@ -99,41 +99,7 @@ void SLCPolar<VTYPE>_FromCartesian(SLCPPolar<VTYPE>_t polar, SLCCPnt<VTYPE>_t ca
 */
 void SLCPolar<VTYPE>_ToCartesian(SLCPnt<VTYPE>_t cartesian, SLCPCPolar<VTYPE>_t polar);
 ```
-## Line Properties and Plane Properties
-Line and plane properties are declared as
-```
-// A line and a plane can be represented by a point and a unit vector.
-typedef struct {
-    SLC4<VTYPE>_t p0; // reference point
-    SLC4<VTYPE>_t v0; // a unit vector of line direction or plane normal
-} SLCLinePlane<VTYPE>_t, *SLCPLinePlane<VTYPE>_t;
-typedef const SLCLinePlane<VTYPE>_t *SLCPCLinePlane<VTYPE>_t;
-```
-The API to get a set of line properties is declared as
-```
-/*!
-\brief Create a line object from two 3D points in homobeneous coordinate
-\param line [out] line object
-\param p0 [in] a point
-\param p1 [in] another point
-\return SLC_ESINGULAR if p0 and p1 are too close.
-*/
-SLCerrno_t SLCLine<VTYPE>_Property
-(SLCPLinePlane<VTYPE>_t line, SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1);
-```
-The API to get a set of plane properties is declared as
-```
-/*!
-\brief Create a plane object from three 3D points in homobeneous coordinate
-\param line [out] line object
-\param p0 [in] a point
-\param p1 [in] another point
-\param p2 [in] 2nd another point
-\return SLC_ESINGULAR if |(p1-p0)x(p2-p0)| is too small
-*/
-SLCerrno_t SLCPlane<VTYPE>_Property
-(SLCPLinePlane<VTYPE>_t line, SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCCPnt<VTYPE>_t p2);
-```
+## Very Basic Vector Operations
 Basic vector operations are declared as
 ```
 // cross product
@@ -142,9 +108,20 @@ SLCCVec<VTYPE>_t SLCVec<VTYPE>_Cross(SLCCVec<VTYPE>_t v0, SLCCVec<VTYPE>_t v1, S
 // dot product
 SLC<VTYPE>_t SLCVec<VTYPE>_Dot(SLCCVec<VTYPE>_t v0, SLCCVec<VTYPE>_t v1);
 
-// two points to a vector
-SLCCVec<VTYPE>_t SLCVec<VTYPE>_From2Points(SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCVec<VTYPE>_t work);
+// convert two points to a vector
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_ToVector(SLCCPnt<VTYPE>_t p0, SLCCPnt<VTYPE>_t p1, SLCVec<VTYPE>_t work);
+
+// Normalize a vector to a unit vector
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_Normalize(SLCCVec<VTYPE>_t v, SLCVec<VTYPE>_t work);
+
+// Scaling Addition of two vectors
+// return v0 * scale0 + v1 * scale1
+SLCCVec<VTYPE>_t SLCVec<VTYPE>_ScaleAdd(
+    SLCCVec<VTYPE>_t v0, SLC<VTYPE>_t scale0,
+    SLCCVec<VTYPE>_t v1, SLC<VTYPE>_t scale1,
+    SLCVec<VTYPE>_t work);
 ```
+
 # Foot
 ```
 #endif

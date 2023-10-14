@@ -15,6 +15,7 @@
 #include "SLC/NumbersCopy.h"
 #include "SLC/errno.h"
 #include "SLC/Log.h"
+#include "SLC/MiniBLAS.h"
 #include "SLC/Geom3D.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,9 @@ static const SLC4r32_t r32pnt0B = { 0.0f, -2.0f, 5.0f, -2.0f };
 // translation vector
 static const SLC4r32_t r32move0A = { -1.0f, -1.0f, 1.2f, 1.0f };
 static const SLC4r32_t r32move0B = { 3.0f, 3.0f, -3.6f, -3.0f };
+
+// scalar numbers
+static const SLCr32_t r32_2p5 = 2.5f;
 #pragma endregion SLCr32_t_test_data
 ```
 ### SLCr64_t test data
@@ -42,6 +46,9 @@ static const SLC4r64_t r64pnt0B = { 0.0, -2.0, 5.0, -2.0 };
 // translation vector
 static const SLC4r64_t r64move0A = { -1.0, -1.0, 1.2, 1.0 };
 static const SLC4r64_t r64move0B = { 3.0, 3.0, -3.6, -3.0 };
+
+// scalar numbers
+static const SLCr64_t r64_2p5 = 2.5;
 #pragma endregion SLCr64_t_test_data
 ```
 # Generic
@@ -161,6 +168,71 @@ SLCerrno_t <VTYPE>RotateYUT()
     return err;
 }
 ```
+## Vector dot product and cross product
+```
+SLCerrno_t <VTYPE>VectorDotUT()
+{
+    SLCerrno_t err = EXIT_SUCCESS;
+    const SLC<VTYPE>_t _1 = SLC<VTYPE>_units[1];
+    const SLC<VTYPE>_t _1_sqrt3 = _1 / SLC<VTYPE>_sqrt((SLC<VTYPE>_t)3);
+    SLC4<VTYPE>_t
+        unit_vector0 = { _1_sqrt3, _1_sqrt3, _1_sqrt3, _1},
+        unit_vector0A;
+    SLC4<VTYPE>_t
+        unit_vector1 = { _1_sqrt3, _1_sqrt3, -_1_sqrt3, _1};
+    SLCBLAS<VTYPE>_Scale(unit_vector0A, unit_vector0, &<VTYPE>_2p5, 4);
+    do {
+        SLC<VTYPE>_t dot = SLCVec<VTYPE>_Dot(unit_vector0, unit_vector0A);
+        if (!SLC<VTYPE>_areequal(dot, _1, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+        dot = SLCVec<VTYPE>_Dot(unit_vector0A, unit_vector1);
+        SLC<VTYPE>_t dot3 = dot+dot+dot;
+        if (!SLC<VTYPE>_areequal(dot3, _1, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+
+SLCerrno_t <VTYPE>VectorCrossUT()
+{
+    SLCerrno_t err = EXIT_SUCCESS;
+    const SLC<VTYPE>_t _1 = SLC<VTYPE>_units[1], _0 = SLC<VTYPE>_units[0];
+    const SLC<VTYPE>_t _2 = _1 + _1;
+    const SLC<VTYPE>_t _1_sqrt2 = SLC<VTYPE>_sqrt(SLC<VTYPE>_units[1]/_2);
+    const SLC4<VTYPE>_t uv0 = { _1_sqrt2, _1_sqrt2, _0, _1 };
+    const SLC4<VTYPE>_t uv1 = { -_1_sqrt2, _1_sqrt2, _0, _1 };
+    const SLC4<VTYPE>_t uv0_cross_uv1 = { _0, _0, _1, _1 };
+    const SLC4<VTYPE>_t uv1_cross_uv0 = { _0, _0, -_1, _1 };
+    SLC4<VTYPE>_t work;
+    do {
+        SLCCVec<VTYPE>_t cross = SLCVec<VTYPE>_Cross(uv0, uv1, work);
+        if (!SLCPnt<VTYPE>_areequal(uv0_cross_uv1, cross, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+        cross = SLCVec<VTYPE>_Cross(uv1,uv0, work);
+        if (!SLCPnt<VTYPE>_areequal(uv1_cross_uv0, cross, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+```
 ## Test harness
 ```
 SLCerrno_t <VTYPE>Geom3DUT()
@@ -174,6 +246,10 @@ SLCerrno_t <VTYPE>Geom3DUT()
         err = <VTYPE>RotateXUT();
         if (err) break;
         err = <VTYPE>RotateYUT();
+        if (err) break;
+        err = <VTYPE>VectorDotUT();
+        if (err) break;
+        err = <VTYPE>VectorCrossUT();
         if (err) break;
     } while (0);
     SLC_testend(err, __FUNCTION__, __LINE__);
