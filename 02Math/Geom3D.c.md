@@ -302,6 +302,23 @@ SLCCVec<VTYPE>_t SLCVec<VTYPE>_ScaleAdd(
 }
 
 ```
+## Print
+```
+SLC<ITYPE>_t SLCVec<VTYPE>_Print3(
+    FILE* out, const char* prefix, SLCCVec<VTYPE>_t v, const char* postfix
+) {
+    const SLC<VTYPE>_t _1_w = SLC<VTYPE>_units[1]/v[3];
+    return fprintf(out, "%s[%f, %f, %f]%s", prefix,
+        _1_w * v[0], _1_w * v[1], _1_w * v[2], postfix);
+}
+
+SLC<ITYPE>_t SLCVec<VTYPE>_Print4(
+    FILE* out, const char* prefix, SLCCVec<VTYPE>_t v, const char* postfix
+) {
+    return fprintf(out, "%s[%f, %f, %f, %f]%s", prefix,
+        v[0], v[1], v[2], v[3], postfix);
+}
+```
 # Foot
 ```
 ```

@@ -125,6 +125,41 @@ The API to determin whether a point is on a plane is declared here.
 SLCbool_t SLCPlane<VTYPE>_IsOn(SLCPCPlane<VTYPE>_t plane, SLCCPnt<VTYPE>_t pnt,
     SLC<RTYPE>_t tol);
 ```
+The APIs to get intersection among lines and planes.
+```
+/*!
+\brief Get an intersection point of a plane and a line.
+\param plane [in]
+\param line [in]
+\param intersection [out]
+\return SLC_ESINGULAR(nearly no solution) or EXIT_SUCCESS(successfully solved)
+*/
+SLCerrno_t SLCPlane<VTYPE>_IntersectionLinePlane(
+    SLCPCPlane<VTYPE>_t plane, SLCPCLine<VTYPE>_t line, SLCPnt<VTYPE>_t intersection);
+
+/*!
+\brief Get an intersection line of two planes.
+\param plane0 [in] The 1st plane
+\param plane1 [in] The 2nd plane
+\param intersection [out]
+\return SLC_ESINGULAR(nearly no solution) or EXIT_SUCCESS(successfully solved)
+*/
+SLCerrno_t SLCPlane<VTYPE>_Intersection2Planes(
+    SLCPCPlane<VTYPE>_t plane0, SLCPCPlane<VTYPE>_t plane1, SLCPLine<VTYPE>_t intersection);
+
+
+/*!
+\brief Get an intersection point of three planes.
+\param plane0 [in] The 1st plane
+\param plane1 [in] The 2nd plane
+\param plane2 [in] The 3rd plane
+\param intersection [out]
+\return SLC_ESINGULAR(nearly no solution) or EXIT_SUCCESS(successfully solved)
+*/
+SLCerrno_t SLCPlane<VTYPE>_Intersection3Planes(
+    SLCPCPlane<VTYPE>_t plane0, SLCPCPlane<VTYPE>_t plane1, SLCPCPlane<VTYPE>_t plane2,
+    SLCPnt<VTYPE>_t intersection);
+```
 # Foot
 ```
 #endif

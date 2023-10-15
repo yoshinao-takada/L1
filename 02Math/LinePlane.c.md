@@ -9,8 +9,11 @@
 }
 ```
 # Head
+## Includes
 ```
 #include "SLC/LinePlane.h"
+#include "SLC/MiniLA.h"
+#include <errno.h>
 ```
 # Generic
 ## Line Properties and Plane Properties
@@ -160,6 +163,201 @@ SLCbool_t SLCPlane<VTYPE>_IsOn(
     SLCCVec<VTYPE>_t pnt_foot = SLCVec<VTYPE>_ToVector(pnt, foot, _pnt_foot);
     const SLC<VTYPE>_t sqdistance = SLCVec<VTYPE>_Dot(pnt_foot, pnt_foot);
     return sqdistance < (SLC<VTYPE>_stdtol * SLC<VTYPE>_stdtol);
+}
+```
+## Plane-Line Crosssection
+A point on a line, $\bold{P}$ is represented by
+$$\begin{equation}
+\bold{P} = \bold{P}_0 + A\bold{D}_0\text{,}
+\end{equation}$$
+where $\bold{P}_0$ is a reference point of the line, $A$ is an arbitrary scalar
+number, and $\bold{D}_0$ is the direction vector of the line.
+Any point $\bold{P}$ on the plane with the reference point $\bold{P}_1$ is
+represented by
+$$\begin{equation}
+(\bold{P} - \bold{P}_1)\cdot{\bold{N}_1} = 0\text{,}
+\end{equation}$$
+where $\bold{P}_1$ is the reference point of the plane, $\bold{N}_1$ is the normal
+vector of the plane.
+Assigning $\bold{P}$ in (1) to (2),
+$$\begin{equation}
+(\bold{P}_0 + A\bold{D}_0 - \bold{P}_1)\cdot{\bold{N}_1} = 0\text{,}
+\end{equation}$$
+where $A$ is uniquely determined as $A_\text{CROSS}$,
+$$\begin{equation}
+A_\text{CROSS} = {{{(\bold{P}_1-\bold{P}_0)}\cdot{\bold{N}}_1}\over
+    {\bold{D}_0}\cdot{\bold{N}_1}}\text{.}
+\end{equation}$$
+Assigning $A_\text{CROSS}$ to (11), the crosssection point coordinate is
+$$\begin{equation}
+\bold{P}_\text{CROSS} = \bold{P}_0 + A_\text{CROSS}\bold{D}_0\text{.}
+\end{equation}$$
+```
+SLCerrno_t SLCPlane<VTYPE>_IntersectionLinePlane(
+    SLCPCPlane<VTYPE>_t plane, SLCPCLine<VTYPE>_t line, SLCPnt<VTYPE>_t intersection
+) {
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLC4<VTYPE>_t _p1_p0;
+    do {
+        const SLC<VTYPE>_t d0_dot_n1 = SLCVec<VTYPE>_Dot(line->d0, plane->n0);
+        if (SLC<VTYPE>_abs(d0_dot_n1) < (SLC<VTYPE>_stdtol * SLC<VTYPE>_stdtol))
+        {
+            err = SLC_ESINGULAR;
+            break;
+        }
+        SLCCVec<VTYPE>_t p1_p0 = SLCVec<VTYPE>_ToVector(
+            line->p0, plane->p0, _p1_p0);
+        SLC<VTYPE>_t a_cross = SLCVec<VTYPE>_Dot(p1_p0, plane->n0) / d0_dot_n1;
+
+        // calculate P_CROSS
+        SLCVec<VTYPE>_ScaleAdd(line->p0, SLC<VTYPE>_units[1],
+            line->d0, a_cross, intersection);
+    } while (0);
+    return err;
+}
+```
+## Three Plane Crosssection
+Any point $\bold{P}$ on a plane is represented by
+$$\begin{equation}
+(\bold{P} - \bold{P}_0)\cdot{\bold{N}_0} = 0\text{.}
+\end{equation}$$
+Organizing the equation for $\bold{P}$ with three planes (0, 1, 2),
+$$\begin{equation}\begin{matrix}
+    \bold{P}\cdot{\bold{N}_0} & = & \bold{P}_0\cdot{\bold{N}_0}\text{,} \\
+    \bold{P}\cdot{\bold{N}_1} & = & \bold{P}_1\cdot{\bold{N}_1}\text{,} \\
+    \bold{P}\cdot{\bold{N}_2} & = & \bold{P}_2\cdot{\bold{N}_2}\text{.} \\
+\end{matrix}\end{equation}$$
+Organizing them in a matrix formula,
+$$\begin{equation}\begin{bmatrix}
+n_\text{0x} & n_\text{0y} & n_\text{0z} \\
+n_\text{1x} & n_\text{1y} & n_\text{1z} \\
+n_\text{2x} & n_\text{2y} & n_\text{2z} \\
+\end{bmatrix}\begin{bmatrix}
+p_\text{x} \\ p_\text{y} \\ p_\text{z}
+\end{bmatrix} = \begin{bmatrix}
+\bold{P}_0\cdot{\bold{N}_0} \\
+\bold{P}_1\cdot{\bold{N}_1} \\
+\bold{P}_2\cdot{\bold{N}_2} \\
+\end{bmatrix}\text{.}\end{equation}$$
+Solving (18), the crosssection point is determined.
+```
+SLCerrno_t SLCPlane<VTYPE>_Intersection3Planes(
+    SLCPCPlane<VTYPE>_t plane0, SLCPCPlane<VTYPE>_t plane1, SLCPCPlane<VTYPE>_t plane2,
+    SLCPnt<VTYPE>_t intersection
+) {
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLCPArray_t left = NULL, right = NULL, work = NULL;
+    SLCArray_t pxyz = { { sizeof(SLC<VTYPE>_t), 1, 3, 1 }, { intersection } };
+    const SLCi16_t 
+        left_size[] = { sizeof(SLC<VTYPE>_t), 3, 3, 1 },
+        right_size[] = { sizeof(SLC<VTYPE>_t), 1, 3, 1 },
+        work_size[] = { sizeof(SLC<VTYPE>_t), 4, 3, 1 };
+    intersection[3] = SLC<VTYPE>_units[1]; // = 1.0;
+    do {
+        left = SLCArray_Alloc(left_size);
+        right = SLCArray_Alloc(right_size);
+        work = SLCArray_Alloc(work_size);
+        if ((left == NULL) || (right == NULL) || (work == NULL))
+        {
+            err = ENOMEM;
+            break;
+        }
+
+        // fill LHS matrix
+        SLC<VTYPE>_t _1_n3 = SLC<VTYPE>_units[1]/plane0->n0[3];
+        left->data.<VTYPE>[0] = plane0->n0[0] * _1_n3;
+        left->data.<VTYPE>[1] = plane0->n0[1] * _1_n3;
+        left->data.<VTYPE>[2] = plane0->n0[2] * _1_n3;
+        _1_n3 = SLC<VTYPE>_units[1]/plane1->n0[3];
+        left->data.<VTYPE>[3] = plane1->n0[0] * _1_n3;
+        left->data.<VTYPE>[4] = plane1->n0[1] * _1_n3;
+        left->data.<VTYPE>[5] = plane1->n0[2] * _1_n3;
+        _1_n3 = SLC<VTYPE>_units[1]/plane2->n0[3];
+        left->data.<VTYPE>[6] = plane2->n0[0] * _1_n3;
+        left->data.<VTYPE>[7] = plane2->n0[1] * _1_n3;
+        left->data.<VTYPE>[8] = plane2->n0[2] * _1_n3;
+        // fill RHS matrix
+        right->data.<VTYPE>[0] = SLCVec<VTYPE>_Dot(plane0->p0, plane0->n0);
+        right->data.<VTYPE>[1] = SLCVec<VTYPE>_Dot(plane1->p0, plane1->n0);
+        right->data.<VTYPE>[2] = SLCVec<VTYPE>_Dot(plane2->p0, plane2->n0);
+        // Solve the equation
+        if (EXIT_SUCCESS == (err = SLCMat<VTYPE>_Solve(&pxyz, left, right, work)))
+        {
+            break;
+        }
+    } while (0);
+    SLCArray_SafeFree(left);
+    SLCArray_SafeFree(right);
+    SLCArray_SafeFree(work);
+    return err;
+}
+```
+## Two Plane Crosssection
+A line exists as a crosssection of two planes if the planes are not parallel.
+The planes are represented by
+$$\begin{equation}\begin{matrix}
+(\bold{P}-\bold{P}_0)\cdot{\bold{N}}_0 & = & 0\text{,}\\
+(\bold{P}-\bold{P}_1)\cdot{\bold{N}}_1 & = & 0\text{.}
+\end{matrix}\end{equation}$$
+Any point on the crosssection line is represented by
+$$\begin{equation}
+\bold{P} = \bold{P}_2 + A(\bold{N}_0\times{\bold{N}_1})\text{,}
+\end{equation}$$
+because $\bold{N}_0\times{\bold{N}_1}$ is orthogonal to both $\bold{N}_0$ and
+$\bold{N}_1$; i.e. parallel to the both plane.<br/>
+$\bold{P}_2$ is unknown right now. By the way, a virtual third plane can be assumed.
+The third plane is parallel to neither of the first plane or the second plane.
+And the third plane have a reference point common to the first plane, $\bold{P}_0$
+and the normal vector $\bold{N}_0\times\bold{N}_1$. Any point on the third plane
+is represented by
+$$\begin{equation}
+(\bold{P} - \bold{P}_0)\cdot(\bold{N}_0\times\bold{N}_1) = 0\text{.}
+\end{equation}$$
+Combining (19) and (21) to determine $\bold{P}_2$ as a solution of the equation.
+$$\begin{equation}\begin{matrix}
+\bold{P}\cdot{\bold{N}_0} & = & \bold{P}_0\cdot{\bold{N}_0}\text{,} \\
+\bold{P}\cdot{\bold{N}_1} & = & \bold{P}_1\cdot{\bold{N}_1}\text{,} \\
+\bold{P}\cdot{(\bold{N}_0\times{\bold{N}_1})} & = & \bold{P}_0\cdot{(\bold{N}_0\times{\bold{N}_1})}\text{,}
+\end{matrix}\end{equation}$$
+Replacing $\bold{N}_0\times{\bold{N}_1}$ with $\bold{N}_2$, the equation is
+$$\begin{equation}\begin{matrix}
+\bold{P}\cdot{\bold{N}_0} & = & \bold{P}_0\cdot{\bold{N}_0}\text{,} \\
+\bold{P}\cdot{\bold{N}_1} & = & \bold{P}_1\cdot{\bold{N}_1}\text{,} \\
+\bold{P}\cdot{\bold{N}_2} & = & \bold{P}_0\cdot{\bold{N}_2}\text{.}
+\end{matrix}\end{equation}$$
+Rewriting in a matrix formula,
+$$\begin{equation}\begin{bmatrix}
+    n_{\text{0x}} & n_{\text{0y}} & n_{\text{0z}} \\
+    n_{\text{1x}} & n_{\text{1y}} & n_{\text{1z}} \\
+    n_{\text{2x}} & n_{\text{2y}} & n_{\text{2z}} \\
+\end{bmatrix}\begin{bmatrix}
+    p_\text{x} \\ p_\text{y} \\ p_\text{z}
+\end{bmatrix} = \begin{bmatrix}
+    \bold{P}_0\cdot{\bold{N}_0} \\
+    \bold{P}_1\cdot{\bold{N}_1} \\
+    \bold{P}_0\cdot{\bold{N}_2} \\
+\end{bmatrix}\text{.}\end{equation}$$
+Solving the equation, the solution is $\bold{P}_2$.
+```
+SLCerrno_t SLCPlane<VTYPE>_Intersection2Planes(
+    SLCPCPlane<VTYPE>_t plane0, SLCPCPlane<VTYPE>_t plane1, SLCPLine<VTYPE>_t intersection
+) {
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLCPlane<VTYPE>_t plane2;
+    SLC4<VTYPE>_t _p2, _n0_cross_n1;
+    SLCcopy4(plane2.p0, plane0->p0);
+    SLCVec<VTYPE>_Cross(plane0->n0, plane1->n0, _n0_cross_n1);
+    SLCVec<VTYPE>_Normalize(_n0_cross_n1, plane2.n0);
+    do {
+        if (EXIT_SUCCESS != 
+            (err = SLCPlane<VTYPE>_Intersection3Planes(plane0, plane1, &plane2, _p2)))
+        {
+            break;
+        }
+        SLCcopy4(intersection->p0, _p2);
+        SLCcopy4(intersection->d0, plane2.n0);
+    } while (0);
+    return err;
 }
 ```
 # Foot

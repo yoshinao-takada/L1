@@ -193,6 +193,10 @@ typedef void*       SLC16ptr_t[16];
 #define SLCr64_stdtol  1.0e-10
 #define SLCc64_stdtol  SLCr32_stdtol
 #define SLCc128_stdtol SLCr64_stdtol
+#define SLCr32_bigtol  1.0e-3f
+#define SLCr64_bigtol  1.0e-7
+#define SLCc64_bigtol  SLCr32_bigtol
+#define SLCc128_bigtol SLCr64_bigtol
 
 #define SLCprod2(__a) (__a)[0]*(__a)[1]
 #define SLCprod3(__a) (__a)[0]*(__a)[1]*(__a)[2]

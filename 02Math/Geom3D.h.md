@@ -121,7 +121,16 @@ SLCCVec<VTYPE>_t SLCVec<VTYPE>_ScaleAdd(
     SLCCVec<VTYPE>_t v1, SLC<VTYPE>_t scale1,
     SLCVec<VTYPE>_t work);
 ```
+## Print
+```
+// 3D print (not homogeneous)
+SLC<ITYPE>_t SLCVec<VTYPE>_Print3(
+    FILE* out, const char* prefix, SLCCVec<VTYPE>_t v, const char* postfix);
 
+// 4D print (homogenous)
+SLC<ITYPE>_t SLCVec<VTYPE>_Print4(
+    FILE* out, const char* prefix, SLCCVec<VTYPE>_t v, const char* postfix);
+```
 # Foot
 ```
 #endif

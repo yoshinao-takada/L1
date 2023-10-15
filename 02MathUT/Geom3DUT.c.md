@@ -17,8 +17,10 @@
 #include "SLC/Log.h"
 #include "SLC/MiniBLAS.h"
 #include "SLC/Geom3D.h"
+#include "SLC/LinePlane.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 ```
 ## Test data
 ### SLCr32_t test data
@@ -110,7 +112,7 @@ SLCerrno_t <VTYPE>RotateZUT()
              SLC<VTYPE>_areequal(_vec0[0], -vec2[0], SLC<VTYPE>_stdtol)))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s, %d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s, %d\n", __FILE__, __LINE__);
             break;
         }
     } while (0);
@@ -135,7 +137,7 @@ SLCerrno_t <VTYPE>RotateXUT()
               SLC<VTYPE>_areequal(_vec0[2], vec2[2], SLC<VTYPE>_stdtol)))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s, %d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s, %d\n", __FILE__, __LINE__);
             break;
         }
     } while (0);
@@ -160,7 +162,7 @@ SLCerrno_t <VTYPE>RotateYUT()
               SLC<VTYPE>_areequal(_vec0[2], -vec2[2], SLC<VTYPE>_stdtol)))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s, %d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s, %d\n", __FILE__, __LINE__);
             break;
         }
     } while (0);
@@ -186,7 +188,7 @@ SLCerrno_t <VTYPE>VectorDotUT()
         if (!SLC<VTYPE>_areequal(dot, _1, SLC<VTYPE>_stdtol))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
             break;
         }
         dot = SLCVec<VTYPE>_Dot(unit_vector0A, unit_vector1);
@@ -194,7 +196,7 @@ SLCerrno_t <VTYPE>VectorDotUT()
         if (!SLC<VTYPE>_areequal(dot3, _1, SLC<VTYPE>_stdtol))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
             break;
         }
     } while (0);
@@ -218,14 +220,368 @@ SLCerrno_t <VTYPE>VectorCrossUT()
         if (!SLCPnt<VTYPE>_areequal(uv0_cross_uv1, cross, SLC<VTYPE>_stdtol))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
             break;
         }
         cross = SLCVec<VTYPE>_Cross(uv1,uv0, work);
         if (!SLCPnt<VTYPE>_areequal(uv1_cross_uv0, cross, SLC<VTYPE>_stdtol))
         {
             err = SLC_EVALMISMATCH;
-            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FUNCTION__, __LINE__);
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+```
+## Line and Plane
+```
+void <VTYPE>OrthX(SLCVec<VTYPE>_t orth, SLCCVec<VTYPE>_t src)
+{
+    SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+    SLC4<VTYPE>_t x = { _1, _0, _0, _1 };
+    SLC4<VTYPE>_t _src_cross_x;
+    SLCVec<VTYPE>_Cross(src, x, _src_cross_x);
+    SLCVec<VTYPE>_Normalize(_src_cross_x, orth);
+}
+
+void <VTYPE>OrthY(SLCVec<VTYPE>_t orth, SLCCVec<VTYPE>_t src)
+{
+    SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+    SLC4<VTYPE>_t y = { _0, _1, _0, _1 };
+    SLC4<VTYPE>_t _src_cross_y;
+    SLCVec<VTYPE>_Cross(src, y, _src_cross_y);
+    SLCVec<VTYPE>_Normalize(_src_cross_y, orth);
+}
+
+SLCerrno_t <VTYPE>LineUT()
+{
+    const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+    SLCerrno_t err = EXIT_SUCCESS;
+    // setup line
+    SLCLine<VTYPE>_t line;
+    SLC4<VTYPE>_t _orth0, _orth1, _refPntOnLine;
+    SLC4<VTYPE>_t _pe0, _pe1, _foot0, _foot1;
+    SLCcopy4(line.p0, <VTYPE>pnt0A);
+    SLCVec<VTYPE>_Normalize(<VTYPE>move0A, line.d0);
+    do {
+        // refPntOnLine is a reference point of foot from pe0 and pe1
+        SLCCVec<VTYPE>_t refPntOnLine = SLCVec<VTYPE>_ScaleAdd(line.p0, _1, line.d0, <VTYPE>_2p5, _refPntOnLine);
+
+        // _orth0, orth1 are unit vectors orthogonal to line.d0
+        <VTYPE>OrthX(_orth0, line.d0);
+        <VTYPE>OrthY(_orth1, line.d0);
+
+        // pe0, pe1 are test point apart from the line
+        SLCCVec<VTYPE>_t pe0 = SLCVec<VTYPE>_ScaleAdd(refPntOnLine, _1, _orth0, _1, _pe0);
+        SLCCVec<VTYPE>_t pe1 = SLCVec<VTYPE>_ScaleAdd(refPntOnLine, _1, _orth1, _1, _pe1);
+
+        // calculate coordinate of a foot from pe0 as foot0.
+        SLCCPnt<VTYPE>_t foot0 = SLCLine<VTYPE>_Foot(&line, pe0, _foot0);
+
+        // calculate coordinate of a foot from pe1 as foot1.
+        SLCCPnt<VTYPE>_t foot1 = SLCLine<VTYPE>_Foot(&line, pe1, _foot1);
+
+        // confirm equality of foot0, foot1, and refPntOnLine.
+        if (!SLCPnt<VTYPE>_areequal(refPntOnLine, foot0, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch with foot0 @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+        if (!SLCPnt<VTYPE>_areequal(refPntOnLine, foot1, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch with foot1 @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+
+SLCerrno_t <VTYPE>PlaneUT()
+{
+    const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLCPlane<VTYPE>_t plane;
+    SLC4<VTYPE>_t _orth0, _orth1, _refPntOnPlane0, _refPntOnPlane1;
+    SLC4<VTYPE>_t _pe0, _pe1, _foot0, _foot1;
+    SLCcopy4(plane.p0, <VTYPE>pnt0A);
+    SLCVec<VTYPE>_Normalize(<VTYPE>move0A, plane.n0);
+    do {
+        // _orth0, orth1 are unit vectors orthogonal to plane.n0
+        <VTYPE>OrthX(_orth0, plane.n0);
+        <VTYPE>OrthY(_orth1, plane.n0);
+
+        // _refPntOnPlane0, _refPntOnPlane1 are reference points on the plane
+        // but not equal to plane.p0.
+        SLCCPnt<VTYPE>_t refPntOnPlane0 = SLCVec<VTYPE>_ScaleAdd(
+            plane.p0, _1, _orth0, <VTYPE>_2p5, _refPntOnPlane0);
+        SLCCPnt<VTYPE>_t refPntOnPlane1 = SLCVec<VTYPE>_ScaleAdd(
+            plane.p0, _1, _orth1, <VTYPE>_2p5, _refPntOnPlane1);
+
+        // test points apart from the reference points by multiple of plane normal vector
+        SLCCPnt<VTYPE>_t pe0 = SLCVec<VTYPE>_ScaleAdd(
+            _refPntOnPlane0, _1, plane.n0, -<VTYPE>_2p5, _pe0);
+        SLCCPnt<VTYPE>_t pe1 = SLCVec<VTYPE>_ScaleAdd(
+            _refPntOnPlane1, _1, plane.n0, _1, _pe1);
+        
+        // calculate coordinates of foot points.
+        SLCCPnt<VTYPE>_t foot0 = SLCPlane<VTYPE>_Foot(&plane, pe0, _foot0);
+        SLCCPnt<VTYPE>_t foot1 = SLCPlane<VTYPE>_Foot(&plane, pe1, _foot1);
+
+        // confirm equality of foot0 and refPntOnPlane0
+        if (!SLCPnt<VTYPE>_areequal(refPntOnPlane0, foot0, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch of foot0 @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // confirm equality of foot1 and refPntOnPlane1
+        if (!SLCPnt<VTYPE>_areequal(refPntOnPlane1, foot1, SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch of foot1 @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+
+```
+## Plane-Line Intersection Test Data
+```
+// create test data for Intersection APIs
+void <VTYPE>CreateData(SLCPLine<VTYPE>_t line,
+    SLCPPlane<VTYPE>_t plane0, SLCPPlane<VTYPE>_t plane1, SLCPPlane<VTYPE>_t plane2
+) {
+    const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+    SLCcopy4(line->p0, <VTYPE>pnt0A);
+    SLCVec<VTYPE>_Normalize(<VTYPE>move0A, line->d0);
+
+    plane0->p0[0] = _1; plane0->p0[1] = _0; plane0->p0[2] = _0; plane0->p0[3] = _1;
+    plane0->n0[0] = plane0->n0[1] = (SLC<VTYPE>_t)0.5;
+    plane0->n0[2] = SLC<VTYPE>_sqrt(_1
+        - plane0->n0[0] * plane0->n0[0]
+        - plane0->n0[1] * plane0->n0[1]);
+    plane0->n0[3] = _1;
+
+    plane1->p0[0] = plane1->p0[1] = plane1->p0[2] = _0;
+    plane1->p0[3] = _1;
+    plane1->n0[0] = -(plane1->n0[1] = (SLC<VTYPE>_t)0.55);
+    plane1->n0[2] = SLC<VTYPE>_sqrt(_1
+        - plane1->n0[0] * plane1->n0[0]
+        - plane1->n0[1] * plane1->n0[1]);
+    plane1->n0[3] = -_1;
+
+    plane2->p0[0] = plane2->p0[1] = -(plane2->p0[2] = _1);
+    plane2->p0[3] = _1;
+    plane2->n0[0] = -(plane2->n0[1] = -(SLC<VTYPE>_t)0.57);
+    plane2->n0[2] = SLC<VTYPE>_sqrt(_1
+        - plane2->n0[0] * plane2->n0[0]
+        - plane2->n0[1] * plane2->n0[1]);
+    plane2->n0[3] = _1;
+}
+
+void <VTYPE>ValidateData(SLCPLine<VTYPE>_t line,
+    SLCPPlane<VTYPE>_t plane0, SLCPPlane<VTYPE>_t plane1, SLCPPlane<VTYPE>_t plane2
+) {
+    const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+
+    // direction vector and normal vectors are all unit vector
+    assert(SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(line->d0, line->d0), SLC<VTYPE>_stdtol));
+    assert(SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(plane0->n0, plane0->n0), SLC<VTYPE>_stdtol));
+    assert(SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(plane1->n0, plane1->n0),
+    SLC<VTYPE>_stdtol));
+    assert(SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(plane2->n0, plane2->n0),
+    SLC<VTYPE>_stdtol));
+
+    // direction vector and normal vectors are not identical.
+    assert(!SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(line->d0, plane0->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(-_1, SLCVec<VTYPE>_Dot(line->d0, plane0->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(line->d0, plane1->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(-_1, SLCVec<VTYPE>_Dot(line->d0, plane1->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(line->d0, plane2->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(-_1, SLCVec<VTYPE>_Dot(line->d0, plane2->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(plane0->n0, plane1->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(-_1, SLCVec<VTYPE>_Dot(plane0->n0, plane1->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(plane0->n0, plane2->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(-_1, SLCVec<VTYPE>_Dot(plane0->n0, plane2->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(_1, SLCVec<VTYPE>_Dot(plane1->n0, plane2->n0), SLC<VTYPE>_stdtol));
+    assert(!SLC<VTYPE>_areequal(-_1, SLCVec<VTYPE>_Dot(plane1->n0, plane2->n0), SLC<VTYPE>_stdtol));
+}
+```
+## Plane-Line Intersection
+```
+static SLCLine<VTYPE>_t <VTYPE>line;
+static SLCPlane<VTYPE>_t <VTYPE>plane0, <VTYPE>plane1, <VTYPE>plane2;
+
+SLCerrno_t <VTYPE>PlaneLineIntersectionUT()
+{
+    SLCerrno_t err = EXIT_SUCCESS;
+    <VTYPE>CreateData(&<VTYPE>line, &<VTYPE>plane0, &<VTYPE>plane1, &<VTYPE>plane2);
+    <VTYPE>ValidateData(&<VTYPE>line, &<VTYPE>plane0, &<VTYPE>plane1, &<VTYPE>plane2);
+    SLC4<VTYPE>_t _intersection, _p0_intersection, _cross;
+    do {
+        // Get the intersection of the plane and the line
+        if (EXIT_SUCCESS != (err = SLCPlane<VTYPE>_IntersectionLinePlane(
+            &<VTYPE>plane0, &<VTYPE>line, _intersection
+        )))
+        {
+            SLCLog_ERR(err, "Equation near singular @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // Check if the intersection belongs to the plane.
+        SLCCVec<VTYPE>_t p0_intersection = SLCVec<VTYPE>_ToVector(
+            <VTYPE>plane0.p0, _intersection, _p0_intersection
+        );
+        SLC<VTYPE>_t dot = SLCVec<VTYPE>_Dot(<VTYPE>plane0.n0, p0_intersection);
+        if (dot > (SLC<VTYPE>_stdtol * SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "Value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // Check if the intersection belongs to the line.
+        p0_intersection = SLCVec<VTYPE>_ToVector(
+            <VTYPE>line.p0, _intersection, _p0_intersection
+        );
+        SLCCVec<VTYPE>_t cross = SLCVec<VTYPE>_Cross(
+            <VTYPE>line.d0, p0_intersection, _cross
+        );
+        SLC<VTYPE>_t L2norm_cross = SLCVec<VTYPE>_Dot(cross, cross);
+        if (L2norm_cross > (SLC<VTYPE>_stdtol * SLC<VTYPE>_stdtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "Value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+```
+## Plane-Plane Intersection
+```
+SLCerrno_t <VTYPE>PlaneIntersectionUT()
+{
+    const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLCLine<VTYPE>_t _intersection;
+    SLC4<VTYPE>_t _d0end, _linep0_planep0, _d0end_planep0;
+    do {
+        if (EXIT_SUCCESS != (err = SLCPlane<VTYPE>_Intersection2Planes(
+            &<VTYPE>plane0, &<VTYPE>plane1, &_intersection)))
+        {
+            SLCLog_ERR(err, "Equation is near singular @ %s,%d\n",
+                __FILE__, __LINE__);
+            break;
+        }
+
+        // check if the intersection line reference point is on plane0
+        SLCCVec<VTYPE>_t linep0_planep0 = 
+            SLCVec<VTYPE>_ToVector(<VTYPE>plane0.p0, _intersection.p0, _linep0_planep0);
+        SLC<VTYPE>_t absdot = SLC<VTYPE>_abs(SLCVec<VTYPE>_Dot(
+            <VTYPE>plane0.n0, linep0_planep0));
+        if (absdot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // check if the intersection line reference point is on plane1
+        linep0_planep0 =
+            SLCVec<VTYPE>_ToVector(<VTYPE>plane1.p0, _intersection.p0, _linep0_planep0);
+        absdot = SLC<VTYPE>_abs(SLCVec<VTYPE>_Dot(
+            <VTYPE>plane1.n0, linep0_planep0));
+        if (absdot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // get the end point of the direction vector
+        SLCCVec<VTYPE>_t d0end = 
+            SLCVec<VTYPE>_ScaleAdd(_intersection.p0, _1, _intersection.d0, _1, _d0end);
+
+        // check if the end point is on plane0
+        SLCCVec<VTYPE>_t d0end_planep0 = 
+            SLCVec<VTYPE>_ToVector(<VTYPE>plane0.p0, d0end, _d0end_planep0);
+        absdot = SLC<VTYPE>_abs(SLCVec<VTYPE>_Dot(<VTYPE>plane0.n0, d0end_planep0));
+        if (absdot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // check if the end point is on plane1
+        d0end_planep0 = SLCVec<VTYPE>_ToVector(<VTYPE>plane1.p0, d0end, _d0end_planep0);
+        absdot = SLC<VTYPE>_abs(SLCVec<VTYPE>_Dot(<VTYPE>plane1.n0, d0end_planep0));
+        if (absdot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+    } while (0);
+    SLC_testend(err, __FUNCTION__, __LINE__);
+    return err;
+}
+```
+## Three-Plane Intersection
+```
+SLCerrno_t <VTYPE>ThreePlaneIntersectionUT()
+{
+    SLCerrno_t err = EXIT_SUCCESS;
+    SLC4<VTYPE>_t _intersection, _p0_intersection;
+    do {
+        if (EXIT_SUCCESS != (err = SLCPlane<VTYPE>_Intersection3Planes(
+            &<VTYPE>plane0, &<VTYPE>plane1, &<VTYPE>plane2, _intersection)))
+        {
+            SLCLog_ERR(err, "Equation is near singular @ %s,%d\n",
+                __FILE__, __LINE__);
+            break;
+        }
+
+        // check if _intersection belongs to plane0.
+        SLCCVec<VTYPE>_t p0_intersection = SLCVec<VTYPE>_ToVector(
+            <VTYPE>plane0.p0, _intersection, _p0_intersection);
+        SLC<VTYPE>_t dot = SLCVec<VTYPE>_Dot(p0_intersection, <VTYPE>plane0.n0);
+        if (dot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "Value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // check if _intersection belongs to plane1.
+        p0_intersection = SLCVec<VTYPE>_ToVector(
+            <VTYPE>plane1.p0, _intersection, _p0_intersection);
+        dot = SLCVec<VTYPE>_Dot(p0_intersection, <VTYPE>plane1.n0);
+        if (dot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "Value mismatch @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+
+        // check if _intersection belongs to plane2.
+        p0_intersection = SLCVec<VTYPE>_ToVector(
+            <VTYPE>plane2.p0, _intersection, _p0_intersection);
+        dot = SLCVec<VTYPE>_Dot(p0_intersection, <VTYPE>plane2.n0);
+        if (dot > (SLC<VTYPE>_bigtol * SLC<VTYPE>_bigtol))
+        {
+            err = SLC_EVALMISMATCH;
+            SLCLog_ERR(err, "Value mismatch @ %s,%d\n", __FILE__, __LINE__);
             break;
         }
     } while (0);
@@ -250,6 +606,16 @@ SLCerrno_t <VTYPE>Geom3DUT()
         err = <VTYPE>VectorDotUT();
         if (err) break;
         err = <VTYPE>VectorCrossUT();
+        if (err) break;
+        err = <VTYPE>LineUT();
+        if (err) break;
+        err = <VTYPE>PlaneUT();
+        if (err) break;
+        err = <VTYPE>PlaneLineIntersectionUT();
+        if (err) break;
+        err = <VTYPE>PlaneIntersectionUT();
+        if (err) break;
+        err = <VTYPE>ThreePlaneIntersectionUT();
         if (err) break;
     } while (0);
     SLC_testend(err, __FUNCTION__, __LINE__);
