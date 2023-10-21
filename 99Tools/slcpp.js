@@ -40,12 +40,13 @@ for (; line_number < all_lines.length && state < 4; line_number++) {
         }
     } else if (state == 3) {
         if (line_text == '# Generic') {
-            state = 4;
+            state = 4; // exit for loop
         } else if (line_text == '```') {
-            state = 2;
+            state = 2; // waiting for closing code segment; i.e. "```".
         }
     }
 }
+
 fs.writeFileSync(control_obj.out, head, 'utf8');
 line_number--;
 let generic = "";
