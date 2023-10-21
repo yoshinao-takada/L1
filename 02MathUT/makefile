@@ -79,6 +79,9 @@ $(RELEASE_OBJDIR)/Geom3DUT.o	:	Geom3DUT.c
 	mkdir -p $(RELEASE_BINDIR)
 	$(CC) $(RELEASE_CCFLAGS) -o $@ $<
 
+02MathUT.c	:	02MathUT.c.md
+	$(SLCPP) $<
+
 MiniBLASUT.c	:	MiniBLASUT.c.md
 	$(SLCPP) $<
 
@@ -91,11 +94,11 @@ Geom3DUT.c	:	Geom3DUT.c.md
 clean_debug	:
 	rm -f $(DEBUG_TARGET)
 	rm -f $(DEBUG_OBJECTS)
-	rm -f MiniBLASUT.c MiniLAUT.c Geom3DUT.c
+	rm -f *.c
 
 clean_release	:
 	rm -f $(RELEASE_TARGET)
 	rm -f $(RELEASE_OBJECTS)
-	rm -f MiniBLASUT.c MiniLAUT.c Geom3DUT.c
+	rm -f *.c
 
 clean	:	clean_debug clean_release

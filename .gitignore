@@ -5,12 +5,6 @@ include/
 01Base/NumbersCopy.c
 01BaseUT/ExecuteLogUT.c
 01BaseUT/ExecuteNumbersCopyUT.c
-02Math/MiniBLAS.c
-02Math/MiniLA.c
-02Math/Geom3D.c
-02Math/LinePlane.c
-02MathUT/MiniBLASUT.c
-02MathUT/MiniLAUT.c
-02MathUT/Geom3DUT.c
-02MathUT/LinePlane.c
+02Math/*.c
+02MathUT/*.c
 access-token.txt

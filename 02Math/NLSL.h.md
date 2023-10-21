@@ -27,12 +27,8 @@ Mathematical details are described in [NLSL.c.md](NLSL.c.md).
 #if !defined(_02MATH_NLSL_H)
 #define _02MATH_NLSL_H
 #include "SLC/Numbers.h"
+#include "SLC/errno.h"
 #include <stdio.h>
-```
-# Generic
-## Generic Parts of Nonlinear Solvers
-```
-#pragma region <VTYPE>_functions
 // The nonlinear solvers are very simple statemachine controlled by
 // a state variable.
 typedef enum {
@@ -44,10 +40,13 @@ typedef enum {
     NLSLState_errabort, // stopped by error in objective or Jacobian
 } SLCNLSLState_t;
 ```
+# Generic
+## Generic Parts of Nonlinear Solvers
 Generic Nonlinear solvers have objective functions as defined below.
 Configuration parameters depend on algorithms. But many of the parameters are common to most algorithms.
 The common parts of the parameter and objective function signature are also defined below.
 ```
+#pragma region <VTYPE>_functions
 // declare function pointer of objective functions and column functions of Jacobian.
 // The functions must be generalized vector-vector function with multiple
 // constant parameters.
@@ -67,7 +66,7 @@ typedef struct {
     SLCGVVF<VTYPE> objective; /* objective function */
 } SLCNLSLConf<VTYPE>_t, *SLCPNLSLConf<VTYPE>_t;
 
-typedef const SLCNLSLConf<VTYPE>_t, *SLCPCNLSLConf<VTYPE>_t;
+typedef const SLCNLSLConf<VTYPE>_t *SLCPCNLSLConf<VTYPE>_t;
 ```
 * `tracout` : output stream to trace program execution,
 * `cx` : dimension of independent variable __x__,
@@ -97,7 +96,7 @@ typedef struct {
     SLCNLSLConf<VTYPE>_t base; // configuration common parts are regarded as a base class.
     SLCGVVF<VTYPE>* jacobian; // array of Jacobian column vector functions
 } SLCNLSLGNConf<VTYPE>_t, *SLCPNLSLGNConf<VTYPE>_t;
-typedef const SLCNLSLGNConf<VTYPE>_t, *SLCPCNLSLGNConf<VTYPE>_t;
+typedef const SLCNLSLGNConf<VTYPE>_t *SLCPCNLSLGNConf<VTYPE>_t;
 ```
 Main body of Gauss-Newton solver contains many matrices and complicated.
 Therefore its details are hidden in its c source file and are not shown in the
@@ -106,7 +105,6 @@ header file. Only the type names are declared.
 typedef struct SLCNLSLGNSolver<VTYPE> SLCNLSLGNSolver<VTYPE>_t;
 typedef SLCNLSLGNSolver<VTYPE>_t *SLCPNLSLGNSolver<VTYPE>_t;
 typedef const SLCNLSLGNSolver<VTYPE>_t *SLCPCNLSLGNSolver<VTYPE>_t;
-#pragma endregion <VTYPE>_functions
 ```
 Methods comprising the Gauss-Newton solver are declared as shown below.
 ```
@@ -132,6 +130,7 @@ const SLC<VTYPE>_t* SLCNLSLGNSolver<VTYPE>_Y(SLCPNLSLGNSolver<VTYPE>_t solver);
 // retrieve L1 norm of dx and y vector
 SLC<VTYPE>_t SLCNLSLGNSolver<VTYPE>_L1NormDX(SLCPNLSLGNSolver<VTYPE>_t solver);
 SLC<VTYPE>_t SLCNLSLGNSolver<VTYPE>_L1NormY(SLCPNLSLGNSolver<VTYPE>_t solver);
+#pragma endregion <VTYPE>_functions
 ```
 # Foot
 ```

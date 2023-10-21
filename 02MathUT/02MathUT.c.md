@@ -1,3 +1,15 @@
+# Control
+```
+{
+    "out": "02MathUT.c",
+    "vtypes": ["r32", "r64", "c64", "c128"],
+    "rtypes": ["r32", "r64", "r32", "r64"],
+    "itype": "i32",
+    "stype": "u32"
+}
+```
+# Head
+```
 #include "SLC/errno.h"
 #include "SLC/Log.h"
 #include <stdlib.h>
@@ -21,3 +33,10 @@ int main(int argc, const char* argv[])
     } while (0);
     return err;
 }
+```
+# Generic
+```
+```
+# Foot
+```
+```
