@@ -484,7 +484,7 @@ static SLCerrno_t <VTYPE>SolveUT()
 ```
 ## Solve an overly determined equation
 ```
-SLCerrno_t <VTYPE>SolveODUT()
+static SLCerrno_t <VTYPE>SolveODUT()
 {
     SLCerrno_t err = EXIT_SUCCESS;
     SLCArray_t left = {{{sizeof(SLC<VTYPE>_t), 3, 5, 1}}, { <VTYPE>leftOD }};
@@ -526,7 +526,7 @@ SLCerrno_t <VTYPE>SolveODUT()
 ```
 ## Simplified API to solve overly determined equation
 ```
-SLCerrno_t <VTYPE>EasySolveODUT()
+static SLCerrno_t <VTYPE>EasySolveODUT()
 {
     SLCerrno_t err = EXIT_SUCCESS;
     SLCArray_t left = {{{sizeof(SLC<VTYPE>_t), 3, 5, 1}}, { <VTYPE>leftOD }};

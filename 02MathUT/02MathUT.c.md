@@ -17,6 +17,7 @@
 SLCerrno_t MiniBLASUT();
 SLCerrno_t MiniLAUT();
 SLCerrno_t Geom3DUT();
+SLCerrno_t NLSLUT();
 
 int main(int argc, const char* argv[])
 {
@@ -29,6 +30,8 @@ int main(int argc, const char* argv[])
         err = MiniLAUT();
         if (err) break;
         err = Geom3DUT();
+        if (err) break;
+        err = NLSLUT();
         if (err) break;
     } while (0);
     return err;
