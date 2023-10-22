@@ -189,6 +189,7 @@ static SLCerrno_t <VTYPE>SolveODUT()
 #pragma endregion <VTYPE>_functions
 ```
 ## Nonlinear equation: A 2x2 matrix to the power of 2 and 3
+Details of the problem are described in [NLSL Sample 0](NLSLSample0.md).
 ```
 static SLCerrno_t <VTYPE>Objective00(
     SLC<VTYPE>_t* y, SLCi32_t cy,
