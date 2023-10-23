@@ -16,7 +16,9 @@
 1) Reconfirm LMS solver more rigorously than `MiniLAUT`.
     * 3rd order polynomial curve fitting
 2) Confirm `02Math/NLSL`.
-    * a 2x2 matrix to the power of 2 and 3,
+    * a 2x2 matrix $\text{M}_1$ is unknown, A known value $\text{M}_\text{K}$ is given for
+    ${\text{M}_1}^2+{\text{M}_1}^3$;<br/>i.e. ${\text{M}_1}^2+{\text{M}_1}^3-\text{M}_\text{K} = 0$ in standard
+    nonlinear equation form.
     * a 3x3 matrix to the power of 2 and the trace of the original matrix.
 
 ## includes
@@ -190,7 +192,7 @@ static SLCerrno_t <VTYPE>SolveODUT()
 ```
 ## Nonlinear equation: A 2x2 matrix to the power of 2 and 3
 Details of the problem are described in [NLSL Sample 0](NLSLSample0.md).
-### Objective and Jacobian
+### Objective and Jacobian: context and its memory management
 ```
 typedef struct <VTYPE>MatPower2And3 {
     SLCPArray_t M1, M2, dM1dx0, dM1dx1, dM1dx2, dM1dx3;
@@ -206,14 +208,16 @@ static void <VTYPE>MatPower2And3_Init(<VTYPE>PMatPower2And3_t context)
     context->dM1dx1 = SLCArray_Alloc(matsize);
     context->dM1dx2 = SLCArray_Alloc(matsize);
     context->dM1dx3 = SLCArray_Alloc(matsize);
+    // zero clear all dM1dxN.
     SLC<VTYPE>_copy(context->dM1dx0->data.<VTYPE>, 1, SLC<VTYPE>_units, 0, 4);
     SLC<VTYPE>_copy(context->dM1dx1->data.<VTYPE>, 1, SLC<VTYPE>_units, 0, 4);
     SLC<VTYPE>_copy(context->dM1dx2->data.<VTYPE>, 1, SLC<VTYPE>_units, 0, 4);
     SLC<VTYPE>_copy(context->dM1dx3->data.<VTYPE>, 1, SLC<VTYPE>_units, 0, 4);
+    // set 1 elements in dM1dxN.
     context->dM1dx0->data.<VTYPE>[0] = 
-    context->dM1dx0->data.<VTYPE>[1] = 
-    context->dM1dx0->data.<VTYPE>[2] = 
-    context->dM1dx0->data.<VTYPE>[3] = SLC<VTYPE>_units[1];
+    context->dM1dx1->data.<VTYPE>[1] = 
+    context->dM1dx2->data.<VTYPE>[2] = 
+    context->dM1dx3->data.<VTYPE>[3] = SLC<VTYPE>_units[1];
     for (SLC<ITYPE>_t i = 0; i < SLCarraysize(context->work); i++)
     {
         context->work[i] = SLCArray_Alloc(matsize);
@@ -223,6 +227,7 @@ static void <VTYPE>MatPower2And3_Init(<VTYPE>PMatPower2And3_t context)
 static void <VTYPE>MatPower2And3_Destroy(<VTYPE>PMatPower2And3_t context)
 {
     SLCArray_SafeFree(context->M1);
+    SLCArray_SafeFree(context->M2);
     SLCArray_SafeFree(context->dM1dx0);
     SLCArray_SafeFree(context->dM1dx1);
     SLCArray_SafeFree(context->dM1dx2);
@@ -232,7 +237,9 @@ static void <VTYPE>MatPower2And3_Destroy(<VTYPE>PMatPower2And3_t context)
         SLCArray_SafeFree(context->work[i]);
     }
 }
-
+```
+### Objective and Jacobian: Test parameter initializer
+```
 static void <VTYPE>MatPower2And3_CreateParams(<VTYPE>PMatPower2And3_t context, SLC<VTYPE>_t* params)
 {
     context->M1->data.<VTYPE>[0] = <VTYPE>Mat2x2[0] + <VTYPE>DiagonalOffsets[0];
@@ -249,7 +256,9 @@ static void <VTYPE>MatPower2And3_CreateParams(<VTYPE>PMatPower2And3_t context, S
     SLCBLAS<VTYPE>_ScaleAss(M2.data.<VTYPE>, SLC<VTYPE>_units + 2, 4);
     SLCBLAS<VTYPE>_ScaleAss(M3.data.<VTYPE>, SLC<VTYPE>_units + 2, 4);
 }
-
+```
+### Objective and Jacobian: Objective function
+```
 static SLCerrno_t <VTYPE>Objective00(
     SLC<VTYPE>_t* y, SLCi32_t cy,
     const SLC<VTYPE>_t* x, SLCi32_t cx,
@@ -262,24 +271,19 @@ static SLCerrno_t <VTYPE>Objective00(
     ctx->M1->data.<VTYPE>[1] = x[1];
     ctx->M1->data.<VTYPE>[2] = x[2];
     ctx->M1->data.<VTYPE>[3] = x[3] + params[1];
-    SLCArray_t M2 = {
-        {{ctx->M1->cont.i16[0], ctx->M1->cont.i16[1], ctx->M1->cont.i16[2], ctx->M1->cont.i16[3] }},
-        {(void*)y}
-    };
-    SLCArray_t M3 = {
-        {{ctx->M1->cont.i16[0], ctx->M1->cont.i16[1], ctx->M1->cont.i16[2], ctx->M1->cont.i16[3] }},
-        {(void*)(y + 4)}
-    };
+    SLCArray_t M2 = { ctx->M1->cont, {(void*)y} };
+    SLCArray_t M3 = { ctx->M1->cont, {(void*)(y + 4)} };
     do {
-        SLCPArray_t work = SLCArray_Alloca(ctx->M1->cont.i16);
-        SLCMat<VTYPE>_Multiply(&M2, ctx->M1, ctx->M1, work);
+        SLCMat<VTYPE>_Multiply(&M2, ctx->M1, ctx->M1, ctx->work[0]);
         memcpy(ctx->M2->data.<VTYPE>, M2.data.<VTYPE>, SLCprod3(ctx->M2->cont.i16));
-        SLCMat<VTYPE>_Multiply(&M3, &M2, ctx->M1, work);
+        SLCMat<VTYPE>_Multiply(&M3, &M2, ctx->M1, ctx->work[0]);
         SLCBLAS<VTYPE>_AddAss(y, params + 2, cy);
     } while (0);
     return err;
 }
-
+```
+### Objective and Jacobian: Jacobian
+```
 // Jacobian column common
 static SLCerrno_t <VTYPE>Jcommon(
     SLC<VTYPE>_t* y, SLCi32_t cy,
@@ -289,9 +293,13 @@ static SLCerrno_t <VTYPE>Jcommon(
     SLCPCArray_t dM1dx
 ) {
     <VTYPE>PMatPower2And3_t ctx = (<VTYPE>PMatPower2And3_t)context;
+    // work[0] = M1 * dM1dx, work[1] = dM1dx * M1,
+    // *y = M1 * dM1dx + dM1dx * M1
     SLCMat<VTYPE>_Multiply(ctx->work[0], ctx->M1, dM1dx, ctx->work[7]);
     SLCMat<VTYPE>_Multiply(ctx->work[1], dM1dx, ctx->M1, ctx->work[7]);
     SLCBLAS<VTYPE>_Add(y, ctx->work[0]->data.<VTYPE>, ctx->work[1]->data.<VTYPE>, 4);
+    // work[2] = M1 * M1 * dM1dx, work[3] = M1 * dM1dx * M1, work[4] = dM1dx * M1 * M1
+    // *(y + 4) = M1 * M1 * dM1dx + M1 * dM1dx * M1 + dM1dx * M1 * M1
     SLCMat<VTYPE>_Multiply(ctx->work[2], ctx->M1, ctx->work[0], ctx->work[7]);
     SLCMat<VTYPE>_Multiply(ctx->work[3], ctx->M1, ctx->work[1], ctx->work[7]);
     SLCMat<VTYPE>_Multiply(ctx->work[4], ctx->work[1], ctx->M1, ctx->work[7]);
