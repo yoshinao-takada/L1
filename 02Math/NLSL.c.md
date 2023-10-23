@@ -221,7 +221,8 @@ static SLCerrno_t <VTYPE>CalcJ(SLCPNLSLGNSolver<VTYPE>_t solver)
         err = solver->conf.jacobian[column](
             solver->jcolbuf->data.<VTYPE>, rows,
             solver->x->data.<VTYPE>, columns,
-            NULL, 0
+            NULL, 0,
+            solver->conf.base.context
         );
         if (err) break;
         SLC<VTYPE>_copy(
@@ -241,7 +242,8 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Execute(SLCPNLSLGNSolver<VTYPE>_t solver)
         err = solver->conf.base.objective(
             solver->y->data.<VTYPE>, solver->conf.base.cy,
             solver->x->data.<VTYPE>, solver->conf.base.cx,
-            solver->conf.base.cParams, solver->conf.base.cc
+            solver->conf.base.cParams, solver->conf.base.cc,
+            solver->conf.base.context
         );
         if (err) break;
         for (SLC<ITYPE>_t i = 0; i < solver->conf.base.cy; i++)

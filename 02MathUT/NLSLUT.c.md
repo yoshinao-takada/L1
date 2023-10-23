@@ -233,6 +233,23 @@ static void <VTYPE>MatPower2And3_Destroy(<VTYPE>PMatPower2And3_t context)
     }
 }
 
+static void <VTYPE>MatPower2And3_CreateParams(<VTYPE>PMatPower2And3_t context, SLC<VTYPE>_t* params)
+{
+    context->M1->data.<VTYPE>[0] = <VTYPE>Mat2x2[0] + <VTYPE>DiagonalOffsets[0];
+    context->M1->data.<VTYPE>[1] = <VTYPE>Mat2x2[1];
+    context->M1->data.<VTYPE>[2] = <VTYPE>Mat2x2[2];
+    context->M1->data.<VTYPE>[3] = <VTYPE>Mat2x2[3] + <VTYPE>DiagonalOffsets[1];
+    SLCArray_t M2 = { context->M1->cont, params + 2 };
+    SLCArray_t M3 = { context->M1->cont, params + 6 };
+    SLCMat<VTYPE>_Multiply(&M2, context->M1, context->M1, context->work[0]);
+    SLCMat<VTYPE>_Multiply(&M3, &M2, context->M1, context->work[0]);
+    params[0] = <VTYPE>DiagonalOffsets[0];
+    params[1] = <VTYPE>DiagonalOffsets[1];
+    // negate params[2..9]
+    SLCBLAS<VTYPE>_ScaleAss(M2.data.<VTYPE>, SLC<VTYPE>_units + 2, 4);
+    SLCBLAS<VTYPE>_ScaleAss(M3.data.<VTYPE>, SLC<VTYPE>_units + 2, 4);
+}
+
 static SLCerrno_t <VTYPE>Objective00(
     SLC<VTYPE>_t* y, SLCi32_t cy,
     const SLC<VTYPE>_t* x, SLCi32_t cx,
@@ -258,6 +275,7 @@ static SLCerrno_t <VTYPE>Objective00(
         SLCMat<VTYPE>_Multiply(&M2, ctx->M1, ctx->M1, work);
         memcpy(ctx->M2->data.<VTYPE>, M2.data.<VTYPE>, SLCprod3(ctx->M2->cont.i16));
         SLCMat<VTYPE>_Multiply(&M3, &M2, ctx->M1, work);
+        SLCBLAS<VTYPE>_AddAss(y, params + 2, cy);
     } while (0);
     return err;
 }
@@ -333,12 +351,39 @@ static SLCerrno_t <VTYPE>J3(
 ```
 ### Execute Testing Gauss-Newton Solver
 ```
-SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3()
+SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
 {
+    const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
     SLCerrno_t err = EXIT_SUCCESS;
+    <VTYPE>MatPower2And3_t context;
+    const SLC<ITYPE>_t cx = 4, cy = 8, cc = 10;
+    const SLC<VTYPE>_t xIni[] = { _1, _0, _0, _1 };
+    SLCPNLSLGNSolver<VTYPE>_t solver = NULL;
     do {
-
+        <VTYPE>MatPower2And3_Init(&context);
+        solver = SLCNLSLGNSolver<VTYPE>_New(cx, cy, cc);
+        SLCPNLSLGNConf<VTYPE>_t conf = SLCNLSLGNSolver<VTYPE>_Conf(solver);
+        conf->jacobian[0] = <VTYPE>J0;
+        conf->jacobian[1] = <VTYPE>J1;
+        conf->jacobian[2] = <VTYPE>J2;
+        conf->jacobian[3] = <VTYPE>J3;
+        SLCPNLSLConf<VTYPE>_t confbase = &conf->base;
+        confbase->traceout = SLCLog_Sink;
+        confbase->maxIter = 10;
+        memcpy(confbase->xInitial, xIni, sizeof(xIni));
+        <VTYPE>MatPower2And3_CreateParams(&context, confbase->cParams);
+        confbase->normDxMax = SLC<VTYPE>_bigtol;
+        confbase->normYMax = SLC<VTYPE>_bigtol;
+        confbase->objective = <VTYPE>Objective00;
+        confbase->context = &context;
+        err = SLCNLSLGNSolver<VTYPE>_Execute(solver);
+        if (err)
+        {
+            SLCLog_ERR(err, "Fail in SLCNLSLGNSolver<VTYPE>_Execute() @ %s,%d\n", __FILE__, __LINE__);
+        }
     } while (0);
+    SLCNLSLGNSolver<VTYPE>_Delete(&solver);
+    <VTYPE>MatPower2And3_Destroy(&context);
     SLC_testend(err, __FUNCTION__, __LINE__);
     return err;
 }

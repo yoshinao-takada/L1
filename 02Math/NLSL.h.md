@@ -53,7 +53,12 @@ The common parts of the parameter and objective function signature are also defi
 typedef SLCerrno_t (*SLCGVVF<VTYPE>)(
     SLC<VTYPE>_t* y, SLC<ITYPE>_t cy, /* depedent variables */
     const SLC<VTYPE>_t* x, SLC<ITYPE>_t cx, /* dependent variables */
-    const SLC<VTYPE>_t* c, SLC<ITYPE>_t cc /* constants */);
+    const SLC<VTYPE>_t* c, SLC<ITYPE>_t cc, /* constants */
+    /*
+        Any information can be shared among objective and jacobian column functions,
+        and during iterative operations, using context.
+    */
+    void* context);
 
 // declare configuration struct of a nonlinear solver.
 typedef struct {
@@ -64,6 +69,7 @@ typedef struct {
     SLC<VTYPE>_t *cParams; /* constant parameters */
     SLC<RTYPE>_t normDxMax, normYMax; /* Convergence criterions; L1 norm of delta-x and y */
     SLCGVVF<VTYPE> objective; /* objective function */
+    void* context; /* any info shared among objective and jacobian during iteration */
 } SLCNLSLConf<VTYPE>_t, *SLCPNLSLConf<VTYPE>_t;
 
 typedef const SLCNLSLConf<VTYPE>_t *SLCPCNLSLConf<VTYPE>_t;
