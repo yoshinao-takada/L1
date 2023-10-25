@@ -384,10 +384,15 @@ SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
         confbase->normYMax = SLC<VTYPE>_bigtol;
         confbase->objective = <VTYPE>Objective00;
         confbase->context = &context;
-        err = SLCNLSLGNSolver<VTYPE>_Execute(solver);
-        if (err)
+        if (EXIT_SUCCESS != (err = SLCNLSLGNSolver<VTYPE>_Init(solver)))
+        {
+            SLCLog_ERR(err, "Fail in SLCNLSLGNSolver<VTYPE>_Init() @ %s,%d\n", __FILE__, __LINE__);
+            break;
+        }
+        if (EXIT_SUCCESS != (err = SLCNLSLGNSolver<VTYPE>_Execute(solver)))
         {
             SLCLog_ERR(err, "Fail in SLCNLSLGNSolver<VTYPE>_Execute() @ %s,%d\n", __FILE__, __LINE__);
+            break;
         }
     } while (0);
     SLCNLSLGNSolver<VTYPE>_Delete(&solver);
@@ -403,6 +408,8 @@ static SLCerrno_t <VTYPE>NLSLUT()
     SLCerrno_t err = EXIT_SUCCESS;
     do {
         err = <VTYPE>SolveODUT();
+        if (err) break;
+        err = <VTYPE>NLSLGNMat2x2Pow2And3UT();
         if (err) break;
     } while (0);
     SLC_testend(err, __FUNCTION__, __LINE__);

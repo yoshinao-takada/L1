@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <malloc.h>
+#include <memory.h>
+#include <errno.h>
 ```
 # Generic
 ## Full Definition of Gauss-Newton solver struct
@@ -69,7 +71,7 @@ static void <VTYPE>TraceXY(SLCPCNLSLGNSolver<VTYPE>_t solver)
             solver->x->data.<VTYPE>[i]);
     }
     fprintf(solver->conf.base.traceout, "}\ny = {");
-    for (SLC<ITYPE>_t i = 0; i < solver->conf.base.cx; i++)
+    for (SLC<ITYPE>_t i = 0; i < solver->conf.base.cy; i++)
     {
         const char* fmtdesc = (i == 0) ? "%f" : ", %f";
         fprintf(solver->conf.base.traceout, fmtdesc,
@@ -142,7 +144,14 @@ static SLCerrno_t AllocAllArrays<VTYPE>(SLCPNLSLGNSolver<VTYPE>_t solver)
     solver->negy = SLCArray_Alloc(size_y);
     solver->jcolbuf = SLCArray_Alloc(size_y);
     solver->j = SLCArray_Alloc(size_j);
-    SLCMat_InitSolveODWorkMatSet(solver->j, solver->delta_x, &solver->wkset);
+    SLCMat_InitSolveODWorkMatSet(solver->j, solver->y, &solver->wkset);
+    SLCerrno_t err = (
+        !solver->x || !solver->x_new || !solver->delta_x || !solver->y ||
+        !solver->negy || !solver->jcolbuf || !solver->j ||
+        !solver->wkset.leftT || !solver->wkset.leftTC ||
+        !solver->wkset.leftTC_left || !solver->wkset.rightT ||
+        !solver->wkset.leftTC_right || !solver->wkset.work) ? ENOMEM : EXIT_SUCCESS;
+    return err;
 }
 
 // create a new instance
@@ -152,16 +161,21 @@ SLCPNLSLGNSolver<VTYPE>_t SLCNLSLGNSolver<VTYPE>_New(
     SLC<ITYPE>_t headSize = SLCalign8(sizeof(SLCNLSLGNSolver<VTYPE>_t));
     SLC<ITYPE>_t xInitialSize = SLCalign8(sizeof(SLC<VTYPE>_t) * cx);
     SLC<ITYPE>_t cParamsSize = SLCalign8(sizeof(SLC<VTYPE>_t) * cc);
-    SLC<ITYPE>_t allocSize = headSize + xInitialSize + cParamsSize;
+    SLC<ITYPE>_t JacobianSize = SLCalign8(sizeof(SLCGVVF<VTYPE>) * cx);
+    SLC<ITYPE>_t allocSize = headSize + xInitialSize + cParamsSize + JacobianSize;
     SLCPNLSLGNSolver<VTYPE>_t pobj = (SLCPNLSLGNSolver<VTYPE>_t)malloc(allocSize);
+    if (!pobj) return pobj;
     pobj->conf.base.xInitial = (SLC<VTYPE>_t*)(((SLCu8_t*)pobj) + headSize);
     pobj->conf.base.cParams = (SLC<VTYPE>_t*)(((SLCu8_t*)pobj) + headSize + xInitialSize);
+    pobj->conf.jacobian = (SLCGVVF<VTYPE>*)(((SLCu8_t*)pobj) + headSize + xInitialSize + cParamsSize);
     SLC<VTYPE>_copy(pobj->conf.base.xInitial, 1, SLC<VTYPE>_units, 0, cx);
     SLC<VTYPE>_copy(pobj->conf.base.cParams, 1, SLC<VTYPE>_units, 0, cc);
+    memset(pobj->conf.jacobian, 0, cx * sizeof(void*));
     pobj->conf.base.cx = cx;
     pobj->conf.base.cy = cy;
     pobj->conf.base.cc = cc;
     pobj->conf.base.objective = NULL;
+    pobj->conf.base.traceout = stderr;
 
     if (EXIT_SUCCESS != AllocAllArrays<VTYPE>(pobj))
     {
@@ -246,13 +260,15 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Execute(SLCPNLSLGNSolver<VTYPE>_t solver)
             solver->conf.base.context
         );
         if (err) break;
+        solver->trace_xy(solver);
         for (SLC<ITYPE>_t i = 0; i < solver->conf.base.cy; i++)
         {
             solver->negy->data.<VTYPE>[i] = -solver->y->data.<VTYPE>[i];
         }
 
         // calc Jacobian
-        if (EXIT_SUCCESS != (err = <VTYPE>CalcJ(solver))) break;        
+        if (EXIT_SUCCESS != (err = <VTYPE>CalcJ(solver))) break;
+        solver->trace_j(solver);
 
         // calc delta_x
         err = SLCMat<VTYPE>_SolveOD(solver->delta_x, solver->j, solver->negy, &solver->wkset);
@@ -264,6 +280,7 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Execute(SLCPNLSLGNSolver<VTYPE>_t solver)
         // calc normDX, normY
         solver->normDX = SLCBLAS<VTYPE>_AbsSum(solver->delta_x->data.<VTYPE>, solver->conf.base.cx);
         solver->normY = SLCBLAS<VTYPE>_AbsSum(solver->y->data.<VTYPE>, solver->conf.base.cy);
+        solver->trace_norm_dxy(solver);
 
         // check convergence normDxMax, normYMax
         if ((solver->normDX < solver->conf.base.normDxMax) ||
