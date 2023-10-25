@@ -219,11 +219,11 @@ static void <VTYPE>_CopyFromRightHalf(SLC<VTYPE>_t* dst, SLC<ITYPE>_t dst_rows,
     }
 }
 
-SLC<ITYPE>_t <VTYPE>_BestPivot(SLC<VTYPE>_t* work_row_head, SLC<ITYPE>_t work_row_length,
-    SLC<ITYPE>_t row, SLC<ITYPE>_t work_rows, SLC<ITYPE>_t work_columns
-) {
+static SLC<ITYPE>_t <VTYPE>_BestPivot(
+    SLC<VTYPE>_t* work_row_head, SLC<ITYPE>_t row, SLC<ITYPE>_t work_rows, SLC<ITYPE>_t work_columns)
+{
     SLC<RTYPE>_t pv_rel_mag = SLC<RTYPE>_units[2]; // assign -1
-    SLC<ITYPE>_t pv_candidate_index = -1, left_part_remaining = work_row_length - work_rows;
+    SLC<ITYPE>_t pv_candidate_index = -1, left_part_remaining = work_rows - row;
     for (; row < work_rows; row++, work_row_head += work_columns)
     {
         SLC<RTYPE>_t pv_mag = SLC<VTYPE>_abs(*work_row_head);
@@ -276,7 +276,7 @@ SLCerrno_t SLCMat<VTYPE>_Inv(SLCPArray_t dst, SLCPCArray_t src, SLCPArray_t work
             #endif
             // Select the best pivot row
             SLC<ITYPE>_t new_pv_row = 
-                <VTYPE>_BestPivot(work_row_head, work_row_length, row, work_rows, work_columns);
+                <VTYPE>_BestPivot(work_row_head, row, work_rows, work_columns);
             if (new_pv_row == -1)
             { // src matrix is singular.
                 err = SLC_ESINGULAR;
@@ -494,7 +494,7 @@ SLCerrno_t SLCMat<VTYPE>_Solve(
             #endif
             // select the best pivot row
             SLC<ITYPE>_t pv_row = <VTYPE>_BestPivot(
-                work_row_head, work_row_length, row, work_rows, work_columns);
+                work_row_head, row, work_rows, work_columns);
             if (pv_row == -1)
             {
                 err = SLC_ESINGULAR;
