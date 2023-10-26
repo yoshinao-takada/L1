@@ -38,30 +38,36 @@
 ## test data
 ### common test data
 ```
+#pragma region test_data
 static const SLCi32_t PolyOrder = 3;
 static const SLCi32_t PolyCoeffCount = 4;
 static const SLCi32_t XPointCount = 20;
 ```
 ### test data for r32_t
 ```
+#pragma region r32_test_data
 static const SLC4r32_t r32PolyCoeff = { 0.5f, -1.0f, -0.3f, 0.1f };
 static const SLCr32_t
     r32XBegin0 = -2.0f, r32XBegin1 = -2.2f,
     r32XStep0 = 0.15f, r32XStep1 = 0.33f;
 static const SLCr32_t* r32Mat2x2 = r32PolyCoeff;
 static const SLC2r32_t r32DiagonalOffsets = { 0.2f, -0.3f };
+#pragma endregion r32_test_data
 ```
 ### test data for r64_t
 ```
+#pragma region r64_test_data
 static const SLC4r64_t r64PolyCoeff = { 0.5, -1.0, -0.3, 0.1 };
 static const SLCr64_t
     r64XBegin0 = -2.0, r64XBegin1 = -2.2,
     r64XStep0 = 0.15, r64XStep1 = 0.33;
 static const SLCr64_t* r64Mat2x2 = r64PolyCoeff;
 static const SLC2r64_t r64DiagonalOffsets = { 0.2, -0.3 };
+#pragma endregion r64_test_data
 ```
 ### test data for c64_t
 ```
+#pragma region c64_test_data
 static const SLC4c64_t c64PolyCoeff = {
     CMPLXF(0.5f,-0.45f), CMPLXF(-1.0f,0.95f),
     CMPLXF(-0.3f,-0.27f), CMPLXF(0.1f,0.0f) };
@@ -70,9 +76,11 @@ static const SLCc64_t
     c64XStep0 = CMPLXF(0.15f,0.15f), c64XStep1 = CMPLXF(0.33f,-0.2f);
 static const SLCc64_t* c64Mat2x2 = c64PolyCoeff;
 static const SLC2c64_t c64DiagonalOffsets = { CMPLXF(0.2f, 0.0f), CMPLXF(-0.3f, -1.0f) };
+#pragma endregion c64_test_data
 ```
 ### test data for c128_t
 ```
+#pragma region c128_test_data
 static const SLC4c128_t c128PolyCoeff = {
     CMPLX(0.5,-0.45), CMPLX(-1.0,0.95),
     CMPLX(-0.3,-0.27), CMPLX(0.1,0.0) };
@@ -81,11 +89,14 @@ static const SLCc128_t
     c128XStep0 = CMPLX(0.15,0.15), c128XStep1 = CMPLX(0.33,-0.2);
 static const SLCc128_t* c128Mat2x2 = c128PolyCoeff;
 static const SLC2c128_t c128DiagonalOffsets = { CMPLX(0.2, 0.0), CMPLX(-0.3, -1.0) };
+#pragma endregion c128_test_data
+#pragma endregion test_data
 ```
 # Generic
 ## Overly determined linear equation: 3rd order polynomial fitting
 ```
 #pragma region <VTYPE>_functions
+#pragma region <VTYPE>_Overly_determined_linear_equation
 // calculate test polynomial value for independent variable x.
 static SLC<VTYPE>_t <VTYPE>PolyFit_PolyValue(SLC<VTYPE>_t x)
 {
@@ -186,14 +197,13 @@ static SLCerrno_t <VTYPE>SolveODUT()
     SLC_testend(err, __FUNCTION__, __LINE__);
     return err;
 }
-```
-```
-#pragma endregion <VTYPE>_functions
+#pragma endregion <VTYPE>_Overly_determined_linear_equation
 ```
 ## Nonlinear equation: A 2x2 matrix to the power of 2 and 3
 Details of the problem are described in [NLSL Sample 0](NLSLSample0.md).
 ### Objective and Jacobian: context and its memory management
 ```
+#pragma region <VTYPE>_Objective_and_Jacobian
 typedef struct <VTYPE>MatPower2And3 {
     SLCPArray_t M1, M2, dM1dx0, dM1dx1, dM1dx2, dM1dx3;
     SLCPArray_t work[8];
@@ -356,6 +366,7 @@ static SLCerrno_t <VTYPE>J3(
     SLCPCArray_t dM1dx = ctx->dM1dx3;
     return <VTYPE>Jcommon(y, cy, x, cx, params, cc, context, dM1dx);
 }
+#pragma endregion <VTYPE>_Objective_and_Jacobian
 ```
 ### Execute Testing Gauss-Newton Solver
 ```
@@ -365,7 +376,7 @@ SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
     SLCerrno_t err = EXIT_SUCCESS;
     <VTYPE>MatPower2And3_t context;
     const SLC<ITYPE>_t cx = 4, cy = 8, cc = 10;
-    const SLC<VTYPE>_t xIni[] = { _1, _0, _0, _1 };
+    const SLC<VTYPE>_t xIni[] = { _0, _0, _0, _0 };
     SLCPNLSLGNSolver<VTYPE>_t solver = NULL;
     do {
         <VTYPE>MatPower2And3_Init(&context);
@@ -377,11 +388,11 @@ SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
         conf->jacobian[3] = <VTYPE>J3;
         SLCPNLSLConf<VTYPE>_t confbase = &conf->base;
         confbase->traceout = SLCLog_Sink;
-        confbase->maxIter = 10;
+        confbase->maxIter = 20;
         memcpy(confbase->xInitial, xIni, sizeof(xIni));
         <VTYPE>MatPower2And3_CreateParams(&context, confbase->cParams);
-        confbase->normDxMax = SLC<VTYPE>_bigtol;
-        confbase->normYMax = SLC<VTYPE>_bigtol;
+        confbase->normDxMax = SLC<VTYPE>_stdtol;
+        confbase->normYMax = SLC<VTYPE>_stdtol;
         confbase->objective = <VTYPE>Objective00;
         confbase->context = &context;
         if (EXIT_SUCCESS != (err = SLCNLSLGNSolver<VTYPE>_Init(solver)))
@@ -415,6 +426,7 @@ static SLCerrno_t <VTYPE>NLSLUT()
     SLC_testend(err, __FUNCTION__, __LINE__);
     return err;
 }
+#pragma endregion <VTYPE>_functions
 ```
 # Foot
 ## Test Harness for all base number types

@@ -20,6 +20,7 @@
 ```
 ## SLCr32_t test data
 ```
+#pragma region r32_test_data
 // source values
 static const SLCr32_t r32src0[] = {
     1.0f, 2.0f, 2.5f,
@@ -78,9 +79,11 @@ static const SLCr32_t r32_src0_src2[] = {
     6.75f, -1.35f, -14.1f, -26.5f,
     -29.45f, -16.15f, 42.7f, 72.7f
 };
+#pragma endregion r32_test_data
 ```
 ## SLCr64_t test data
 ```
+#pragma region r64_test_data
 // source values
 static const SLCr64_t r64src0[] = {
     1.0, 2.0, 2.5,
@@ -139,9 +142,11 @@ static const SLCr64_t r64_src0_src2[] = {
     6.75, -1.35, -14.1, -26.5,
     -29.45, -16.15, 42.7, 72.7
 };
+#pragma endregion r64_test_data
 ```
 ## SLCc64_t test data
 ```
+#pragma region c64_test_data
 // source values
 static const SLCc64_t c64src0[] = {
     CMPLXF(1.0f, 2.0f), CMPLXF(2.5f,-2.2f), CMPLXF(-0.5f,0.5f),
@@ -200,9 +205,11 @@ static const SLCc64_t c64_src0_src2[] = {
     CMPLXF(12.84f,-1.4f), CMPLXF(-9.65f,-11.84f), CMPLXF(4.66f,-13.9f), CMPLXF(4.65f,-24.16f),
     CMPLXF(-19.65f,-9.95f), CMPLXF(-31.25f,33.61f), CMPLXF(-38.15f,7.65f), CMPLXF(-56.55f,26.79f)
 };
+#pragma endregion c64_test_data
 ```
 ## SLCc128_t test data
 ```
+#pragma region c128_test_data
 // source values
 static const SLCc128_t c128src0[] = {
     CMPLX(1.0, 2.0), CMPLX(2.5,-2.2), CMPLX(-0.5,0.5),
@@ -261,10 +268,12 @@ static const SLCc128_t c128_src0_src2[] = {
     CMPLX(12.84,-1.4), CMPLX(-9.65,-11.84), CMPLX(4.66,-13.9), CMPLX(4.65,-24.16),
     CMPLX(-19.65,-9.95), CMPLX(-31.25,33.61), CMPLX(-38.15,7.65), CMPLX(-56.55,26.79)
 };
+#pragma endregion c128_test_data
 ```
 # Generic
 ## matrix sizes
 ```
+#pragma region <VTYPE>_test_functions
 static const SLC4i16_t <VTYPE>matsize2x3 = { sizeof(SLC<VTYPE>_t), 3, 2, 1 };
 static const SLC4i16_t <VTYPE>matsize2x4 = { sizeof(SLC<VTYPE>_t), 4, 2, 1 };
 static const SLC4i16_t <VTYPE>matsize4x2 = { sizeof(SLC<VTYPE>_t), 2, 4, 1 };
@@ -587,6 +596,7 @@ SLCerrno_t <VTYPE>MiniLAUT()
     SLC_testend(err, __FUNCTION__, __LINE__);
     return err;
 }
+#pragma endregion <VTYPE>_test_functions
 ```
 # Foot
 ```
