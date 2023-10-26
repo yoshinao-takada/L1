@@ -32,6 +32,9 @@ struct full definition and memory management functions.
 // debug-trace function type
 typedef void (*NLSLGNSolverTrace<VTYPE>)(SLCPCNLSLGNSolver<VTYPE>_t solver);
 
+// convergence checker
+typedef SLCNLSLState_t (*NLSLGNSolverIsConverged<VTYPE>)(SLCPCNLSLGNSolver<VTYPE>_t solver);
+
 // full definition of Gauss-Newton solver struct
 struct SLCNLSLGNSolver<VTYPE> {
     // configuration parameters
@@ -57,6 +60,7 @@ struct SLCNLSLGNSolver<VTYPE> {
         trace_xy, // trace x and y
         trace_j, // trace Jacobian
         trace_norm_dxy; // trace delta_x and y
+    NLSLGNSolverIsConverged<VTYPE> converged;
 };
 ```
 ## Trace functions
@@ -103,6 +107,39 @@ static void <VTYPE>InitTrace(SLCPNLSLGNSolver<VTYPE>_t solver)
     }
 }
 #pragma endregion <VTYPE>_functions
+```
+## Convergence checker
+```
+static SLCNLSLState_t <VTYPE>NLSLGN_DxConverged(SLCPCNLSLGNSolver<VTYPE>_t solver)
+{
+    return solver->normDX < solver->conf.base.normDxMax ? NLSLState_dx_converged : NLSLState_running;
+}
+
+static SLCNLSLState_t <VTYPE>NLSLGN_YConverged(SLCPCNLSLGNSolver<VTYPE>_t solver)
+{
+    return solver->normY < solver->conf.base.normYMax ? NLSLState_y_converged : NLSLState_running;
+}
+
+static SLCNLSLState_t <VTYPE>NLSLGN_BothConverged(SLCPCNLSLGNSolver<VTYPE>_t solver)
+{
+    return ((solver->normDX < solver->conf.base.normDxMax) &&
+            (solver->normY < solver->conf.base.normYMax)) ? NLSLState_both_converged : NLSLState_running;
+}
+
+static void <VTYPE>InitConvergenceChecker(SLCPNLSLGNSolver<VTYPE>_t solver)
+{
+    switch (solver->conf.base.convergenceCondition)
+    {
+        case NLSLConverge_dx:
+            solver->converged = <VTYPE>NLSLGN_DxConverged;
+            break;
+        case NLSLConverge_y:
+            solver->converged = <VTYPE>NLSLGN_YConverged;
+            break;
+        case NLSLConverge_both:
+            solver->converged = <VTYPE>NLSLGN_BothConverged;
+    }
+}
 ```
 ## Memory management
 ```
@@ -162,7 +199,11 @@ SLCPNLSLGNSolver<VTYPE>_t SLCNLSLGNSolver<VTYPE>_New(
     pobj->conf.base.cx = cx;
     pobj->conf.base.cy = cy;
     pobj->conf.base.cc = cc;
+    pobj->conf.base.maxIter = 10;
+    pobj->conf.base.convergenceCondition = NLSLConverge_both;
+    pobj->conf.base.normDxMax = pobj->conf.base.normYMax = SLC<VTYPE>_stdtol;
     pobj->conf.base.objective = NULL;
+    pobj->conf.base.context = NULL;
     pobj->conf.base.traceout = stderr;
 
     if (EXIT_SUCCESS != AllocAllArrays<VTYPE>(pobj))
@@ -202,6 +243,7 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Init(SLCPNLSLGNSolver<VTYPE>_t solver)
 {
     SLCerrno_t err = EXIT_SUCCESS;
     <VTYPE>InitTrace(solver);
+    <VTYPE>InitConvergenceChecker(solver);
     SLC<VTYPE>_copy(
         solver->x->data.<VTYPE>, 1,
         solver->conf.base.xInitial, 1,
@@ -238,7 +280,9 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Execute(SLCPNLSLGNSolver<VTYPE>_t solver)
 {
     SLCerrno_t err = EXIT_SUCCESS;
     solver->state = NLSLState_running;
-    for (solver->iter = 0; solver->iter < solver->conf.base.maxIter; solver->iter++)
+    for (solver->iter = 0; 
+         (solver->iter < solver->conf.base.maxIter) && (solver->state == NLSLState_running);
+         solver->iter++)
     {
         // calc y
         err = solver->conf.base.objective(
@@ -271,12 +315,7 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Execute(SLCPNLSLGNSolver<VTYPE>_t solver)
         SLCBLAS<VTYPE>_AddAss(solver->x->data.<VTYPE>, solver->delta_x->data.<VTYPE>, solver->conf.base.cx);
 
         // check convergence normDxMax, normYMax
-        if ((solver->normDX < solver->conf.base.normDxMax) ||
-            (solver->normY < solver->conf.base.normYMax))
-        {
-            solver->state = NLSLState_converged;
-            break;
-        }
+        solver->state = solver->converged(solver);
     }
     if (err)
     {

@@ -36,9 +36,18 @@ typedef enum {
     NLSLState_initialized, // just after initialized
     NLSLState_running, // running execution
     NLSLState_iterlimit, // stopped by iteration limit
-    NLSLState_converged, // stopped by convergence
+    NLSLState_dx_converged, // stopped by convergence of normDx
+    NLSLState_y_converged, // stopped by convergence of normY
+    NLSLState_both_converged, // stopped by convergence of both of normDX and normY
     NLSLState_errabort, // stopped by error in objective or Jacobian
 } SLCNLSLState_t;
+
+// Convergence conditions of solvers.
+typedef enum {
+    NLSLConverge_dx = 1, // x satisfy criterion
+    NLSLConverge_y = 2, // y satisfy criterion
+    NLSLConverge_both = 3, // both of x and y satisfy criteria
+} SLCNLSLConvergenceConditions_t;
 ```
 # Generic
 ## Generic Parts of Nonlinear Solvers
@@ -65,6 +74,7 @@ typedef struct {
     FILE* traceout;
     SLC<ITYPE>_t cx, cy, cc; /* element counts of x, y, c */
     SLC<ITYPE>_t maxIter; /* maximum iteration limit */
+    SLCNLSLConvergenceConditions_t convergenceCondition;
     SLC<VTYPE>_t *xInitial; /* initial x vector */
     SLC<VTYPE>_t *cParams; /* constant parameters */
     SLC<RTYPE>_t normDxMax, normYMax; /* Convergence criterions; L1 norm of delta-x and y */

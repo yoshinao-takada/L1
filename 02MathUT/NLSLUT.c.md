@@ -373,7 +373,6 @@ static SLCerrno_t <VTYPE>J3(
 SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
 {
     const SLC<VTYPE>_t _0 = SLC<VTYPE>_units[0], _1 = SLC<VTYPE>_units[1];
-    const SLC<VTYPE>_t _10 = _1 + _1 + _1 + _1 + _1 + _1 + _1 + _1 + _1 + _1;
     SLCerrno_t err = EXIT_SUCCESS;
     <VTYPE>MatPower2And3_t context;
     const SLC<ITYPE>_t cx = 4, cy = 8, cc = 10;
