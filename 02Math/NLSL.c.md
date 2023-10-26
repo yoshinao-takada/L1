@@ -16,6 +16,7 @@
 #include "SLC/MiniBLAS.h"
 #include "SLC/MiniLA.h"
 #include "SLC/errno.h"
+#include "SLC/ExIO.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,7 +39,6 @@ struct SLCNLSLGNSolver<VTYPE> {
 
     // working matrices
     SLCPArray_t
-        x_new, // renewed x
         x, // X column vector
         delta_x, // == x_new - x; i.e. x_new = x + delta_x.
         y, negy, // Y and -Y column vector
@@ -64,19 +64,9 @@ struct SLCNLSLGNSolver<VTYPE> {
 static void <VTYPE>TraceXY(SLCPCNLSLGNSolver<VTYPE>_t solver)
 {
     fprintf(solver->conf.base.traceout, "x = {");
-    for (SLC<ITYPE>_t i = 0; i < solver->conf.base.cx; i++)
-    {
-        const char* fmtdesc = (i == 0) ? "%f" : ", %f";
-        fprintf(solver->conf.base.traceout, fmtdesc,
-            solver->x->data.<VTYPE>[i]);
-    }
+    SLC<VTYPE>_printv(solver->conf.base.traceout, solver->x->data.<VTYPE>, solver->conf.base.cx);
     fprintf(solver->conf.base.traceout, "}\ny = {");
-    for (SLC<ITYPE>_t i = 0; i < solver->conf.base.cy; i++)
-    {
-        const char* fmtdesc = (i == 0) ? "%f" : ", %f";
-        fprintf(solver->conf.base.traceout, fmtdesc,
-            solver->y->data.<VTYPE>[i]);
-    }
+    SLC<VTYPE>_printv(solver->conf.base.traceout, solver->y->data.<VTYPE>, solver->conf.base.cy);
     fprintf(solver->conf.base.traceout, "}\n");
 }
 
@@ -119,7 +109,6 @@ static void <VTYPE>InitTrace(SLCPNLSLGNSolver<VTYPE>_t solver)
 // free all internal buffers in solver.
 static void FreeAllArrays<VTYPE>(SLCPNLSLGNSolver<VTYPE>_t solver)
 {
-    SLCArray_SafeFree(solver->x_new);
     SLCArray_SafeFree(solver->x);
     SLCArray_SafeFree(solver->y);
     SLCArray_SafeFree(solver->negy);
@@ -137,7 +126,6 @@ static SLCerrno_t AllocAllArrays<VTYPE>(SLCPNLSLGNSolver<VTYPE>_t solver)
     SLC4i16_t size_x = { unitsize, 1, cx, 1 };
     SLC4i16_t size_y = { unitsize, 1, cy, 1 };
     SLC4i16_t size_j = { unitsize, cx, cy, 1 };
-    solver->x_new = SLCArray_Alloc(size_x);
     solver->x = SLCArray_Alloc(size_x);
     solver->delta_x = SLCArray_Alloc(size_x);
     solver->y = SLCArray_Alloc(size_y);
@@ -146,7 +134,7 @@ static SLCerrno_t AllocAllArrays<VTYPE>(SLCPNLSLGNSolver<VTYPE>_t solver)
     solver->j = SLCArray_Alloc(size_j);
     SLCMat_InitSolveODWorkMatSet(solver->j, solver->y, &solver->wkset);
     SLCerrno_t err = (
-        !solver->x || !solver->x_new || !solver->delta_x || !solver->y ||
+        !solver->x || !solver->delta_x || !solver->y ||
         !solver->negy || !solver->jcolbuf || !solver->j ||
         !solver->wkset.leftT || !solver->wkset.leftTC ||
         !solver->wkset.leftTC_left || !solver->wkset.rightT ||
@@ -274,13 +262,13 @@ SLCerrno_t SLCNLSLGNSolver<VTYPE>_Execute(SLCPNLSLGNSolver<VTYPE>_t solver)
         err = SLCMat<VTYPE>_SolveOD(solver->delta_x, solver->j, solver->negy, &solver->wkset);
         if (EXIT_SUCCESS != err) break;
 
-        // calc x_new
-        SLCMat<VTYPE>_Add(solver->x_new, solver->x, solver->delta_x);
-
         // calc normDX, normY
         solver->normDX = SLCBLAS<VTYPE>_AbsSum(solver->delta_x->data.<VTYPE>, solver->conf.base.cx);
         solver->normY = SLCBLAS<VTYPE>_AbsSum(solver->y->data.<VTYPE>, solver->conf.base.cy);
         solver->trace_norm_dxy(solver);
+
+        // update x
+        SLCBLAS<VTYPE>_AddAss(solver->x->data.<VTYPE>, solver->delta_x->data.<VTYPE>, solver->conf.base.cx);
 
         // check convergence normDxMax, normYMax
         if ((solver->normDX < solver->conf.base.normDxMax) ||
