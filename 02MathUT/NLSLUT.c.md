@@ -378,6 +378,7 @@ SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
     const SLC<ITYPE>_t cx = 4, cy = 8, cc = 10;
     const SLC<VTYPE>_t xIni[] = { _0, _0, _0, _0 };
     SLCPNLSLGNSolver<VTYPE>_t solver = NULL;
+    const SLC<VTYPE>_t* xresult = NULL;
     do {
         <VTYPE>MatPower2And3_Init(&context);
         solver = SLCNLSLGNSolver<VTYPE>_New(cx, cy, cc);
@@ -387,7 +388,7 @@ SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
         conf->jacobian[2] = <VTYPE>J2;
         conf->jacobian[3] = <VTYPE>J3;
         SLCPNLSLConf<VTYPE>_t confbase = &conf->base;
-        confbase->traceout = SLCLog_Sink;
+        confbase->traceout = NULL;
         confbase->maxIter = 20;
         memcpy(confbase->xInitial, xIni, sizeof(xIni));
         <VTYPE>MatPower2And3_CreateParams(&context, confbase->cParams);
@@ -404,6 +405,17 @@ SLCerrno_t <VTYPE>NLSLGNMat2x2Pow2And3UT()
         {
             SLCLog_ERR(err, "Fail in SLCNLSLGNSolver<VTYPE>_Execute() @ %s,%d\n", __FILE__, __LINE__);
             break;
+        }
+        // check x tolerances
+        xresult = SLCNLSLGNSolver<VTYPE>_X(solver);
+        for (SLC<ITYPE>_t i = 0; i < cx; i++)
+        {
+            if (!SLC<VTYPE>_areequal(<VTYPE>Mat2x2[i], xresult[i], SLC<VTYPE>_stdtol))
+            {
+                err = SLC_EVALMISMATCH;
+                SLCLog<VTYPE>_ERR(err, "<VTYPE>Mat2x2", "xresult", i, <VTYPE>Mat2x2, xresult);
+                break;
+            }
         }
     } while (0);
     SLCNLSLGNSolver<VTYPE>_Delete(&solver);
